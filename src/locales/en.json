@@ -1,0 +1,92 @@
+{
+  "nav": {
+    "home": "Home",
+    "about": "About Us",
+    "crowd": "Crowd Status",
+    "permission": "Permission",
+    "liveDarshan": "Live Darshan",
+    "melaMap": "Map",
+    "gallery": "Gallery",
+    "donation": "Donation",
+    "help": "Help & Support"
+  },
+  "header": {
+    "siteMap": "Site Map",
+    "title": "Khatu Shyam Ji Temple",
+    "subtitle": "Shri Shyam Mandir, Khatu, Rajasthan",
+    "sos": "SOS",
+    "login": "Login"
+  },
+  "marquee": "Jai Shree Shyam  •  Online Puja Booking Now Available  •  Sheegh Darshan Pass — Book Online  •  Sandhya Aarti Timing: 7:30 PM  •  Bhasma Aarti: 4:00 AM  •  Donation Portal Open  •  Annual Shyam Mahotsav — June 15  •  Jai Shree Shyam  •",
+  "hero": {
+    "subtitle": "ॐ   Jai Shree Shyam   ॐ",
+    "title": "Khatu Shyam Ji Temple",
+    "desc": "Haare Ka Sahara, Baba Shyam Hamara — Experience the divine blessings of Shri Shyam Baba. Book pujas, darshan passes and donate from anywhere.",
+    "bookBtn": "Book Darshan Pass",
+    "loginBtn": "Devotee Login"
+  },
+  "about": {
+    "subtitle": "About the Temple",
+    "title": "Shri Khatu Shyam Ji Mandir",
+    "p1": "Located in Khatu village of Sikar district, Rajasthan, the Khatu Shyam Ji temple is one of the most revered shrines in India. Devotees believe that Baba Shyam — also known as \"Haare Ka Sahara\" — fulfills the wishes of all who visit with a pure heart.",
+    "p2": "The temple draws millions of pilgrims every year, especially during the Phalgun Mela and Shyam Ekadashi. The deity is especially worshipped by traders and businessmen seeking blessings for prosperity.",
+    "btn": "Learn More",
+    "imageText": "खाटू श्याम जी",
+    "imageSub": "Khatu, Sikar, Rajasthan"
+  },
+  "info": {
+    "subtitle": "Temple Information",
+    "title": "Updates & Live Status",
+    "notifTitle": "Latest Informations & Notifications",
+    "viewAll": "View All",
+    "aartiTitle": "Daily Aarti Timings",
+    "winter": "Winter",
+    "summer": "Summer"
+  },
+  "stats": {
+    "darshan": { "label": "Darshan Wait Time", "value": "45 Mins", "sub": "Updated 5 mins ago" },
+    "crowd": { "label": "Crowd Density", "value": "Moderate", "sub": "Updated 3 mins ago" },
+    "parking": { "label": "Parking Status", "value": "Available", "sub": "Sector 4 Open" },
+    "weather": { "label": "Weather", "value": "24°C", "sub": "Clear sky, Khatu" }
+  },
+  "services": {
+    "title": "Online Services",
+    "bhandaraTitle": "Bhandara Permission",
+    "bhandaraDesc": "Apply for official permission to organise Bhandara (community feast) within the temple premises. Submit details of your event, expected guests and preferred dates for approval.",
+    "medicalTitle": "Medical Camp",
+    "medicalDesc": "Register to organise or participate in medical camps during Mela season. Free health check-ups, blood donation drives and emergency medical aid for devotees.",
+    "accomodationTitle": "Accommodation Booking",
+    "accomodationDesc": "Book dharamshala rooms, guest houses and other accommodation near the temple. Affordable stays with verified listings for families, groups and senior devotees.",
+    "vehicleTitle": "Vehicle Permits",
+    "vehicleDesc": "Apply for official vehicle permits to enter restricted Mela zones. Permits are issued for cars, buses and emergency vehicles with verified credentials.",
+    "darshanTitle": "Darshan Pass",
+    "darshanDesc": "Reserve your Sheegh Darshan and aarti passes online for hassle-free entry. Choose a preferred time-slot and receive your QR-coded pass instantly.",
+    "officerTitle": "Officer Login",
+    "officerDesc": "Secure portal for temple administration, police and emergency officers to manage permits, crowd movement, control-room duties and live alerts.",
+    "trafficTitle": "Traffic Command Center",
+    "trafficDesc": "Real-time traffic, parking and crowd-density dashboard for Mela operations. Used by officers to monitor and divert flow across temple sectors.",
+    "donationTitle": "Donation Portal",
+    "donationDesc": "Offer your humble contribution to Khatu Shyam Ji Temple. Receipts with 80G tax-exemption issued instantly. Every donation supports temple seva.",
+    "lostTitle": "Lost & Found",
+    "lostDesc": "Report lost items or missing persons during the Mela and search the live registry of recovered belongings. Coordinated with the Mela control room.",
+    "yatraTitle": "Yatra Planning",
+    "yatraDesc": "Plan your complete Khatu Shyam Ji yatra with route maps, travel guides, nearby attractions and suggested itineraries. Get tips on best times to visit, local transport and must-see spots.",
+    "crowdTitle": "Live Crowd Status",
+    "crowdDesc": "Check real-time crowd density, queue lengths, and estimated darshan wait times to plan your visit. Live feeds directly from the temple's control center.",
+    "btnApply": "Apply Now",
+    "btnRegister": "Register Now",
+    "btnBook": "Book Now",
+    "btnLogin": "Login",
+    "btnOpen": "Open Dashboard",
+    "btnDonate": "Donate Now",
+    "btnReport": "Report Now",
+    "btnPlan": "Plan Now",
+    "btnView": "View Status"
+  },
+  "cta": {
+    "subtitle": "Join Our Community",
+    "title": "Register as a Devotee Today",
+    "desc": "Create your account to book pujas, get aarti notifications and access exclusive darshan passes.",
+    "btn": "Create Free Account"
+  }
+}

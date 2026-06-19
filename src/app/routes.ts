@@ -1,0 +1,27 @@
+import { createBrowserRouter } from "react-router";
+import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./pages/LoginPage";
+import { ServicePage } from "./pages/ServicePage";
+import { DonationPage } from "./pages/DonationPage";
+import { MelaMapPage } from "./pages/MelaMapPage";
+import { HelpSupportPage } from "./pages/HelpSupportPage";
+import { LiveDarshanPage } from "./pages/LiveDarshanPage";
+import { GalleryPage } from "./pages/GalleryPage";
+import { GalleryVideosPage } from "./pages/GalleryVideosPage";
+import { GalleryVirtualTourPage } from "./pages/GalleryVirtualTourPage";
+import { SiteMapPage } from "./pages/SiteMapPage";
+
+export const router = createBrowserRouter([
+  { path: "/", Component: HomePage },
+  { path: "/login", Component: LoginPage },
+  { path: "/gallery", Component: GalleryPage },
+  { path: "/gallery/videos", Component: GalleryVideosPage },
+  { path: "/gallery/virtual-tour", Component: GalleryVirtualTourPage },
+  { path: "/sitemap", Component: SiteMapPage },
+  { path: "/mela-map", Component: MelaMapPage },
+  { path: "/help", Component: HelpSupportPage },
+  { path: "/live-darshan", Component: LiveDarshanPage },
+  { path: "/services/donation-portal", Component: DonationPage },
+  { path: "/services/:slug", Component: ServicePage },
+  { path: "*", Component: HomePage },
+]);
