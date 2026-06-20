@@ -80,8 +80,8 @@ export function LoginPage() {
           {/* Form Card */}
           <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: C.cardBg, border: `1px solid ${C.border}` }}>
             {portal === "admin"
-              ? <AdminForm method={adminMethod} setMethod={setAdminMethod} showPassword={showPassword} setShowPassword={setShowPassword} />
-              : <DevoteeForm tab={authTab} setTab={setAuthTab} showPassword={showPassword} setShowPassword={setShowPassword} showConfirmPassword={showConfirmPassword} setShowConfirmPassword={setShowConfirmPassword} />
+              ? <AdminForm method={adminMethod} setMethod={setAdminMethod} showPassword={showPassword} setShowPassword={setShowPassword} onLogin={() => { sessionStorage.setItem("adminAuth", "true"); navigate("/admin"); }} />
+              : <DevoteeForm tab={authTab} setTab={setAuthTab} showPassword={showPassword} setShowPassword={setShowPassword} showConfirmPassword={showConfirmPassword} setShowConfirmPassword={setShowConfirmPassword} onLogin={() => navigate("/")} />
             }
           </div>
 
@@ -115,8 +115,8 @@ function PortalCard({ active, onClick, icon, title, subtitle, showBadge }: {
   );
 }
 
-function AdminForm({ method, setMethod, showPassword, setShowPassword }: {
-  method: AdminMethod; setMethod: (m: AdminMethod) => void; showPassword: boolean; setShowPassword: (v: boolean) => void;
+function AdminForm({ method, setMethod, showPassword, setShowPassword, onLogin }: {
+  method: AdminMethod; setMethod: (m: AdminMethod) => void; showPassword: boolean; setShowPassword: (v: boolean) => void; onLogin: () => void;
 }) {
   return (
     <>
@@ -130,7 +130,7 @@ function AdminForm({ method, setMethod, showPassword, setShowPassword }: {
         <MethodTab active={method === "password"} onClick={() => setMethod("password")} icon={<KeyRound size={12} />} label="Password Login" />
         <MethodTab active={method === "otp"} onClick={() => setMethod("otp")} icon={<Smartphone size={12} />} label="OTP Login" />
       </div>
-      <form className="flex flex-col gap-2.5" onSubmit={e => e.preventDefault()}>
+      <form className="flex flex-col gap-2.5" onSubmit={e => { e.preventDefault(); onLogin(); }}>
         <DarkInput label="Admin Email" icon={<Mail size={15} color={C.orange} />} type="email" placeholder="admin@shyamsarathi.gov.in" />
         {method === "password" ? (
           <>
@@ -170,8 +170,8 @@ function MethodTab({ active, onClick, icon, label }: { active: boolean; onClick:
   );
 }
 
-function DevoteeForm({ tab, setTab, showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword }: {
-  tab: AuthTab; setTab: (t: AuthTab) => void; showPassword: boolean; setShowPassword: (v: boolean) => void; showConfirmPassword: boolean; setShowConfirmPassword: (v: boolean) => void;
+function DevoteeForm({ tab, setTab, showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword, onLogin }: {
+  tab: AuthTab; setTab: (t: AuthTab) => void; showPassword: boolean; setShowPassword: (v: boolean) => void; showConfirmPassword: boolean; setShowConfirmPassword: (v: boolean) => void; onLogin: () => void;
 }) {
   return (
     <>
@@ -184,7 +184,7 @@ function DevoteeForm({ tab, setTab, showPassword, setShowPassword, showConfirmPa
           </button>
         ))}
       </div>
-      <form className="flex flex-col gap-2.5" onSubmit={e => e.preventDefault()}>
+      <form className="flex flex-col gap-2.5" onSubmit={e => { e.preventDefault(); onLogin(); }}>
         {tab === "signup" && <DarkInput label="Full Name" icon={<User size={15} color={C.orange} />} type="text" placeholder="Enter your full name" />}
         <DarkInput label="Email Address" icon={<Mail size={15} color={C.orange} />} type="email" placeholder="Enter your email" />
         {tab === "signup" && <DarkInput label="Phone Number" icon={<Phone size={15} color={C.orange} />} type="tel" placeholder="+91 Enter phone number" />}

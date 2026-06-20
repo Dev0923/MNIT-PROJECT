@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Phone, Shield, Heart, MapPin, MessageSquarePlus, X, Send, CheckCircle2, ArrowUp } from "lucide-react";
 import logoImg from "../../imports/image-21.png";
 
@@ -36,6 +37,7 @@ function EmergencyCard({ icon, label, number, bg, border }: { icon: React.ReactN
 }
 
 export function Footer() {
+  const navigate = useNavigate();
   const [open, setOpen]           = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [text, setText]           = useState("");
@@ -115,13 +117,22 @@ export function Footer() {
                 <span style={{ color: C.orange, fontSize: "1rem" }}>‖</span> Mela Information
               </h4>
               <ul className="flex flex-col gap-2.5">
-                {["Live Darshan", "How to Reach", "Places to Visit", "Parking Locations", "Medical Camps", "Lost & Found", "Crowd Status"].map(l => (
-                  <li key={l}>
-                    <button className="text-xs text-left transition-all"
+                {[
+                  { label: "Live Darshan", path: "/live-darshan" },
+                  { label: "How to Reach", path: "/sitemap" },
+                  { label: "Places to Visit", path: "/gallery" },
+                  { label: "Parking Locations", path: "/mela-map" },
+                  { label: "Medical Camps", path: "/mela-map" },
+                  { label: "Lost & Found", path: "/services/lost-and-found" },
+                  { label: "Crowd Status", path: "/services/crowd-status" },
+                ].map(l => (
+                  <li key={l.label}>
+                    <button className="text-xs text-left transition-all hover:translate-x-1"
+                      onClick={() => navigate(l.path)}
                       style={{ color: "rgba(255,255,255,0.60)" }}
                       onMouseEnter={e => (e.currentTarget.style.color = C.orange)}
                       onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.60)")}>
-                      › {l}
+                      › {l.label}
                     </button>
                   </li>
                 ))}
@@ -134,13 +145,22 @@ export function Footer() {
                 <span style={{ color: C.orange, fontSize: "1rem" }}>‖</span> Digital Services
               </h4>
               <ul className="flex flex-col gap-2.5">
-                {["E-Pass Registration", "Vehicle Permits", "Puja Booking", "Darshan Pass", "Officer Login", "Traffic Command Center", "Donation Portal"].map(l => (
-                  <li key={l}>
-                    <button className="text-xs text-left transition-all"
+                {[
+                  { label: "E-Pass Registration", path: "/services/epass" },
+                  { label: "Vehicle Permits", path: "/services/vehicle-permits" },
+                  { label: "Puja Booking", path: "/services/puja" },
+                  { label: "Darshan Pass", path: "/darshan-booking" },
+                  { label: "Officer Login", path: "/login" },
+                  { label: "Traffic Command Center", path: "/services/traffic-command-center" },
+                  { label: "Donation Portal", path: "/services/donation-portal" },
+                ].map(l => (
+                  <li key={l.label}>
+                    <button className="text-xs text-left transition-all hover:translate-x-1"
+                      onClick={() => navigate(l.path)}
                       style={{ color: "rgba(255,255,255,0.60)" }}
                       onMouseEnter={e => (e.currentTarget.style.color = C.orange)}
                       onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.60)")}>
-                      › {l}
+                      › {l.label}
                     </button>
                   </li>
                 ))}

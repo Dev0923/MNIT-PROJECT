@@ -633,7 +633,7 @@ export function HomePage() {
                 </div>
                 <div className="px-4 pb-4">
                   <button
-                    onClick={() => navigate(s.slug === "darshan-pass" ? "/darshan-booking" : `/services/${s.slug}`)}
+                    onClick={() => navigate(s.slug === "darshan-pass" ? "/darshan-booking" : s.slug === "officer-login" ? "/login" : `/services/${s.slug}`)}
                     className="w-full py-2.5 rounded-md text-sm font-bold text-white transition-all hover:opacity-95"
                     style={{
                       background: `linear-gradient(90deg, #F7941D 0%, #F26A21 100%)`,

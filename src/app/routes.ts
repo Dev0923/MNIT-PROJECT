@@ -11,6 +11,7 @@ import { GalleryVideosPage } from "./pages/GalleryVideosPage";
 import { GalleryVirtualTourPage } from "./pages/GalleryVirtualTourPage";
 import { SiteMapPage } from "./pages/SiteMapPage";
 import { DarshanBookingPage } from "./pages/DarshanBookingPage";
+import { AdminPage } from "./pages/AdminPage";
 
 export const router = createBrowserRouter([
   { path: "/", Component: HomePage },
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
   { path: "/help", Component: HelpSupportPage },
   { path: "/live-darshan", Component: LiveDarshanPage },
   { path: "/darshan-booking", Component: DarshanBookingPage },
+  { path: "/admin", Component: AdminPage },
   { path: "/services/donation-portal", Component: DonationPage },
   { path: "/services/:slug", Component: ServicePage },
   { path: "*", Component: HomePage },
