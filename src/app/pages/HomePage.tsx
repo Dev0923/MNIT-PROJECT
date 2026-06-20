@@ -44,6 +44,8 @@ export function HomePage() {
   const lang = i18n.language;
   const setLang = (l: "en" | "hi") => i18n.changeLanguage(l);
   
+  const isLoggedIn = !!localStorage.getItem("token");
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNav, setActiveNav]           = useState("home");
   const [permOpen, setPermOpen]             = useState(false);
@@ -245,11 +247,19 @@ export function HomePage() {
               style={{ backgroundColor: C.pink }}>
               {t('header.sos')}
             </button>
-            <button onClick={() => navigate("/login")}
-              className="px-4 py-1.5 rounded-md text-xs font-bold text-white transition-all hover:opacity-90"
-              style={{ backgroundColor: C.green }}>
-              {t('header.login')}
-            </button>
+            {!isLoggedIn ? (
+              <button onClick={() => navigate("/login")}
+                className="px-4 py-1.5 rounded-md text-xs font-bold text-white transition-all hover:opacity-90"
+                style={{ backgroundColor: C.green }}>
+                {t('header.login')}
+              </button>
+            ) : (
+              <button onClick={() => { localStorage.clear(); window.location.reload(); }}
+                className="px-4 py-1.5 rounded-md text-xs font-bold text-white transition-all hover:opacity-90"
+                style={{ backgroundColor: C.muted }}>
+                Logout
+              </button>
+            )}
           </div>
 
           {/* Mobile toggle */}
@@ -332,7 +342,11 @@ export function HomePage() {
             ))}
             <div className="flex gap-2 pt-2">
               <button className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.pink }}>{t('header.sos')}</button>
-              <button onClick={() => navigate("/login")} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.green }}>{t('header.login')}</button>
+              {!isLoggedIn ? (
+                <button onClick={() => navigate("/login")} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.green }}>{t('header.login')}</button>
+              ) : (
+                <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.muted }}>Logout</button>
+              )}
             </div>
           </div>
         )}
@@ -365,15 +379,17 @@ export function HomePage() {
             {t('hero.desc')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <button className="px-7 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
+            <button onClick={() => navigate("/darshan-booking")} className="px-7 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
               style={{ backgroundColor: C.orange, boxShadow: `0 4px 18px rgba(247,148,29,0.45)` }}>
               {t('hero.bookBtn')}
             </button>
-            <button onClick={() => navigate("/login")}
-              className="px-7 py-2.5 rounded-full text-sm font-bold border-2 transition-all"
-              style={{ borderColor: C.white, color: C.white, backgroundColor: "rgba(255,255,255,0.10)" }}>
-              {t('hero.loginBtn')}
-            </button>
+            {!isLoggedIn && (
+              <button onClick={() => navigate("/login")}
+                className="px-7 py-2.5 rounded-full text-sm font-bold border-2 transition-all"
+                style={{ borderColor: C.white, color: C.white, backgroundColor: "rgba(255,255,255,0.10)" }}>
+                {t('hero.loginBtn')}
+              </button>
+            )}
           </div>
         </div>
       </section>

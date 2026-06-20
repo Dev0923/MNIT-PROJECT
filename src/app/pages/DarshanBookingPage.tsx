@@ -14,6 +14,7 @@ import {
   FileDown,
   CheckCircle2,
   Info,
+  Loader2,
 } from "lucide-react";
 import { QRCodeCanvas } from "qrcode.react";
 import { jsPDF } from "jspdf";
@@ -393,6 +394,8 @@ export function DarshanBookingPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   /* ---------- success / PDF state ---------- */
   const [submitted, setSubmitted] = useState(false);
@@ -521,13 +524,56 @@ export function DarshanBookingPage() {
   }
 
   /* ---------- submit handler ---------- */
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!validate()) return;
-    const id = generateBookingId();
-    setBookingId(id);
-    setSubmitted(true);
-    // We generate PDF after a tick so the QR canvas renders
-    setTimeout(() => generatePDF(id), 400);
+    setSubmitLoading(true);
+    setSubmitError("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const payload = {
+        booking_type: bookingType,
+        date: selectedDate?.toISOString(),
+        phone: bookingType === "individual" ? indiv.phone : group.phone,
+        city: bookingType === "individual" ? indiv.city : group.city,
+        individual_details: bookingType === "individual" ? {
+          name: indiv.name,
+          age: parseInt(indiv.age, 10),
+          wheelchair: indiv.wheelchair,
+        } : null,
+        group_details: bookingType === "group" ? {
+          count: group.count,
+          names: group.names,
+          wheelchairs: group.wheelchairs,
+        } : null,
+      };
+
+      const res = await fetch("http://localhost:8000/api/bookings/create", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to submit booking");
+      }
+
+      setBookingId(data.booking_id);
+      setSubmitted(true);
+      setTimeout(() => generatePDF(data.booking_id), 400);
+    } catch (err: any) {
+      setSubmitError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitLoading(false);
+    }
   }
 
   /* ---------- group count change ---------- */
@@ -1175,17 +1221,37 @@ export function DarshanBookingPage() {
               </div>
             )}
 
+            {submitError && (
+              <div
+                className="mt-4 p-4 rounded-xl text-xs flex items-center gap-2"
+                style={{ backgroundColor: C.red + "15", border: `1.5px solid ${C.red}`, color: C.red }}
+              >
+                <span>⚠️</span>
+                <span>{submitError}</span>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full mt-6 py-4 rounded-full text-base font-bold text-white flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              disabled={submitLoading}
+              className="w-full mt-6 py-4 rounded-full text-base font-bold text-white flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
               style={{
                 background: `linear-gradient(135deg, ${C.orange}, #F4C430)`,
                 boxShadow: `0 6px 24px rgba(247,148,29,0.40)`,
               }}
             >
-              <CalendarDays size={18} />
-              Confirm Booking & Get Pass
+              {submitLoading ? (
+                <>
+                  <Loader2 className="animate-spin" size={18} />
+                  Booking Slot...
+                </>
+              ) : (
+                <>
+                  <CalendarDays size={18} />
+                  Confirm Booking & Get Pass
+                </>
+              )}
             </button>
 
             {/* Info note */}

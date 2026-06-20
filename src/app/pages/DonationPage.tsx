@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import {
   ArrowLeft, Heart, CheckCircle2, IndianRupee,
   ShieldCheck, HeartHandshake, Utensils, Flower2,
-  GraduationCap, PawPrint, Flame, Copy, Check,
+  GraduationCap, PawPrint, Flame, Copy, Check, Loader2,
 } from "lucide-react";
 import logoImg from "../../imports/image-21.png";
 
@@ -64,6 +64,9 @@ export function DonationPage() {
   const [step, setStep] = useState<Step>("form");
   const [selectedQuick, setSelectedQuick] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [txnId, setTxnId] = useState("");
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const {
     register,
@@ -86,8 +89,43 @@ export function DonationPage() {
     setStep("confirm");
   }
 
-  function handleConfirmPay() {
-    setStep("success");
+  async function handleConfirmPay() {
+    setSubmitLoading(true);
+    setSubmitError("");
+    try {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch("http://localhost:8000/api/donations/create", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          fullName: vals.fullName,
+          mobile: vals.mobile,
+          purpose: vals.purpose,
+          amount: parseFloat(vals.amount),
+          want80G: vals.want80G,
+          panCard: vals.want80G ? vals.panCard : null,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to register donation");
+      }
+
+      setTxnId(data.donation_id);
+      setStep("success");
+    } catch (err: any) {
+      setSubmitError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitLoading(false);
+    }
   }
 
   function handleCopyUPI() {
@@ -110,7 +148,7 @@ export function DonationPage() {
             Donation Successful!
           </h2>
           <p className="text-sm mb-1" style={{ color: C.muted }}>Transaction ID</p>
-          <p className="mb-4 font-bold" style={{ color: C.darkText, letterSpacing: "0.04em" }}>TXN{Date.now().toString().slice(-10)}</p>
+          <p className="mb-4 font-bold" style={{ color: C.darkText, letterSpacing: "0.04em" }}>{txnId || `TXN${Date.now().toString().slice(-10)}`}</p>
           <div className="rounded-xl px-5 py-4 mb-6 text-left space-y-2" style={{ backgroundColor: C.cream, border: `1px solid ${C.border}` }}>
             {[
               ["Donor", vals.fullName],
@@ -195,13 +233,31 @@ export function DonationPage() {
               <p className="text-xs mt-1" style={{ color: C.muted }}>or scan the QR at the temple counter</p>
             </div>
 
+            {submitError && (
+              <div
+                className="mx-6 mb-4 p-4 rounded-xl text-xs flex items-center gap-2"
+                style={{ backgroundColor: C.error + "15", border: `1.5px solid ${C.error}`, color: C.error }}
+              >
+                <span>⚠️</span>
+                <span>{submitError}</span>
+              </div>
+            )}
+
             <div className="px-6 pb-6">
               <button
                 onClick={handleConfirmPay}
-                className="w-full py-3.5 rounded-full text-white text-sm font-bold transition-all hover:opacity-90 hover:-translate-y-0.5"
+                disabled={submitLoading}
+                className="w-full py-3.5 rounded-full text-white text-sm font-bold transition-all hover:opacity-90 hover:-translate-y-0.5 disabled:opacity-50 flex items-center justify-center gap-2"
                 style={{ background: `linear-gradient(90deg, ${C.orange}, ${C.gold})`, boxShadow: `0 8px 24px ${C.orange}55` }}
               >
-                Confirm & Donate
+                {submitLoading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    Processing...
+                  </>
+                ) : (
+                  "Confirm & Donate"
+                )}
               </button>
             </div>
           </div>

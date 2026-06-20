@@ -4,7 +4,7 @@ import { useNavigate } from "react-router";
 import {
   ArrowLeft, Search, Phone, Mail, MessageCircle, ShieldAlert,
   Calendar, CreditCard, HandCoins, Compass, FileBadge, Wrench,
-  ChevronDown, MapPin, Clock, Send, CheckCircle2,
+  ChevronDown, MapPin, Clock, Send, CheckCircle2, Loader2,
   Building2, Shield, Stethoscope, Car, Landmark, Users2,
   Flame, Star, Hotel, Train, Plane, Bus, Radio, Globe,
 } from "lucide-react";
@@ -205,6 +205,40 @@ export function HelpSupportPage() {
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [activeHelplineCat, setActiveHelplineCat] = useState<HelplineCat>("All");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmitQuery(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch("http://localhost:8000/api/support/query", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          subject: form.subject,
+          message: form.message,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to submit query");
+      }
+
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || "Failed to send message. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const cats = ["All", ...Array.from(new Set(FAQS.map(f => f.cat)))];
   const filteredFaqs = FAQS.filter(f =>
@@ -580,14 +614,14 @@ export function HelpSupportPage() {
               </div>
               <p className="text-base font-bold mb-1" style={{ color: C.darkBlue }}>Message Sent!</p>
               <p className="text-xs" style={{ color: C.muted }}>We've received your message and will respond shortly.</p>
-              <button onClick={() => { setSubmitted(false); setForm({ name: "", email: "", subject: "", message: "" }); }}
+              <button onClick={() => { setSubmitted(false); setError(""); setForm({ name: "", email: "", subject: "", message: "" }); }}
                 className="mt-5 px-5 py-2 rounded-full text-xs font-bold text-white"
                 style={{ backgroundColor: C.orange }}>
                 Send Another
               </button>
             </div>
           ) : (
-            <form onSubmit={e => { e.preventDefault(); setSubmitted(true); }} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmitQuery} className="flex flex-col gap-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Full Name" value={form.name} onChange={v => setForm({ ...form, name: v })} placeholder="Devotee name" />
                 <Field label="Email Address" type="email" value={form.email} onChange={v => setForm({ ...form, email: v })} placeholder="you@example.com" />
@@ -605,10 +639,28 @@ export function HelpSupportPage() {
                   style={{ backgroundColor: C.cream, border: `1px solid ${C.border}`, color: C.darkText, resize: "vertical" }}
                 />
               </div>
+              {error && (
+                <div
+                  className="p-3 rounded-lg text-xs flex items-center gap-2"
+                  style={{ backgroundColor: "#DC262615", border: "1px solid #DC2626", color: "#DC2626" }}
+                >
+                  <span>⚠️</span>
+                  <span>{error}</span>
+                </div>
+              )}
               <button type="submit"
-                className="self-start flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white transition-opacity hover:opacity-90"
+                disabled={loading}
+                className="self-start flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: C.orange, boxShadow: `0 6px 16px rgba(247,148,29,0.35)` }}>
-                <Send size={14} /> Send Message
+                {loading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={14} /> Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={14} /> Send Message
+                  </>
+                )}
               </button>
             </form>
           )}

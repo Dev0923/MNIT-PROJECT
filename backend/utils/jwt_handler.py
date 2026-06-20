@@ -1,0 +1,104 @@
+"""
+JWT token creation and verification.
+"""
+
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+
+from jose import JWTError, jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from ..config import settings
+from ..database import get_db
+
+# Bearer token security scheme
+security = HTTPBearer()
+
+
+def create_access_token(user_id: str) -> str:
+    """Create a JWT access token for the given user ID."""
+    expire = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expiry_hours)
+    payload = {
+        "sub": user_id,
+        "exp": expire,
+        "iat": datetime.now(timezone.utc),
+    }
+    token = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    return token
+
+
+def decode_access_token(token: str) -> Optional[str]:
+    """Decode a JWT token and return the user_id, or None if invalid."""
+    try:
+        payload = jwt.decode(
+            token, settings.jwt_secret, algorithms=[settings.jwt_algorithm]
+        )
+        user_id: str = payload.get("sub")
+        return user_id
+    except JWTError:
+        return None
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """
+    FastAPI dependency — extracts and validates the JWT from the
+    Authorization header, then fetches and returns the user document.
+    """
+    token = credentials.credentials
+    user_id = decode_access_token(token)
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    db = get_db()
+    from bson import ObjectId
+
+    try:
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    return user
+
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+) -> Optional[dict]:
+    """
+    FastAPI dependency — extracts and validates the JWT from the
+    Authorization header if present. Returns user dict or None.
+    """
+    if credentials is None:
+        return None
+        
+    token = credentials.credentials
+    user_id = decode_access_token(token)
+
+    if user_id is None:
+        return None
+
+    db = get_db()
+    from bson import ObjectId
+
+    try:
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        return user
+    except Exception:
+        return None
+
