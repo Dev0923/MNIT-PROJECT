@@ -71,7 +71,7 @@ export function HomePage() {
 
   const DONATION_ITEMS = [
     { label: "Donation", icon: <HandCoins        size={16} color={C.orange} />, slug: "donation-portal" },
-    { label: "Annadaan", icon: <UtensilsCrossed  size={16} color={C.green}  />, slug: "annadaan" },
+    { label: "Annadaan", icon: <UtensilsCrossed  size={16} color={C.green}  />, path: "/services/annadaan-seva" },
   ];
 
   const GALLERY_ITEMS = [
@@ -614,6 +614,14 @@ export function HomePage() {
                 desc: t('services.donationDesc'),
               },
               {
+                slug: "annadaan-seva",
+                path: "/services/annadaan-seva",
+                title: "Premium Annadaan Seva",
+                cta: "Offer Food Seva",
+                img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=600&q=80",
+                desc: "Feed visiting devotees with Full-Day, Half-Day Bhojan or Sweet Prasad distributed at the temple.",
+              },
+              {
                 slug: "lost-and-found",
                 title: t('services.lostTitle'),
                 cta: t('services.btnReport'),
@@ -650,8 +658,8 @@ export function HomePage() {
                 </div>
                 <div className="px-4 pb-4">
                   <button
-                    onClick={() => navigate(s.slug === "darshan-pass" ? "/darshan-booking" : s.slug === "officer-login" ? "/login" : `/services/${s.slug}`)}
-                    className="w-full py-2.5 rounded-md text-sm font-bold text-white transition-all hover:opacity-95"
+                    onClick={() => navigate((s as any).path ?? (s.slug === "darshan-pass" ? "/darshan-booking" : s.slug === "officer-login" ? "/login" : `/services/${s.slug}`))}
+                    className="w-full py-2.5 rounded-md text-sm font-bold text-white transition-all hover:opacity-95 cursor-pointer"
                     style={{
                       background: `linear-gradient(90deg, #F7941D 0%, #F26A21 100%)`,
                       color: C.white,

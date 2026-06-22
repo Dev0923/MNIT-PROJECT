@@ -351,6 +351,18 @@ export function DonationPage() {
         <p className="text-sm mt-3 max-w-lg mx-auto" style={{ color: C.muted }}>
           Your contribution helps serve millions of devotees and maintain the sacred traditions of Khatu Dham.
         </p>
+
+        {/* Premium Annadaan Banner */}
+        <div className="max-w-xl mx-auto mt-6 bg-white rounded-2xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left border" style={{ backgroundColor: "#FFFBF2", borderColor: `${C.orange}40` }}>
+          <div className="text-center sm:text-left">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-white px-2.5 py-0.5 rounded-full" style={{ backgroundColor: C.orange }}>Premium Seva</span>
+            <h4 className="text-sm font-bold mt-1.5" style={{ color: C.darkBlue }}>Dedicated Annadaan Seva</h4>
+            <p className="text-xs text-gray-500 mt-0.5">Offer Full/Half-Day Bhojan Prasad or Sweet Prasad on specific auspicious dates.</p>
+          </div>
+          <button type="button" onClick={() => navigate("/services/annadaan-seva")} className="px-5 py-2.5 rounded-full text-xs font-bold text-white transition-all hover:scale-105 shrink-0 cursor-pointer" style={{ backgroundColor: C.darkBlue }}>
+            Book Seva →
+          </button>
+        </div>
       </div>
 
       {/* ── Quick Amount Chips ───────────────────── */}

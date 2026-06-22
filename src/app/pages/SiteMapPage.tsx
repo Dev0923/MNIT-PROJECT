@@ -40,7 +40,7 @@ const TREE_DATA: RawNode = {
       id: "donation", label: "Donation",
       children: [
         { id: "d1", label: "Online Donation", path: "/services/donation-portal" },
-        { id: "d2", label: "Annadaan Seva",   path: "/services/annadaan" },
+        { id: "d2", label: "Annadaan Seva",   path: "/services/annadaan-seva" },
       ],
     },
     {
