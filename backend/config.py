@@ -7,9 +7,8 @@ from pathlib import Path
 
 
 class Settings(BaseSettings):
-    # MongoDB
-    mongodb_url: str = "mongodb://localhost:27017"
-    mongodb_db_name: str = "khatu_shyam_db"
+    # PostgreSQL
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/khatu_shyam_db"
 
     # JWT
     jwt_secret: str = "change-me-in-production"

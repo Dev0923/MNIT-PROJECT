@@ -1,8 +1,9 @@
 fastapi==0.116.1
 uvicorn==0.35.0
-motor==3.7.0
+sqlalchemy[asyncio]==2.0.31
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
 pydantic-settings==2.9.1
 python-jose[cryptography]==3.4.0
 python-dotenv==1.1.0
 bcrypt==4.1.2
-

@@ -8,9 +8,12 @@ from typing import Optional
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 from ..config import settings
 from ..database import get_db
+from ..models.sql_models import User
 
 # Bearer token security scheme
 security = HTTPBearer()
@@ -20,7 +23,7 @@ def create_access_token(user_id: str) -> str:
     """Create a JWT access token for the given user ID."""
     expire = datetime.now(timezone.utc) + timedelta(hours=settings.jwt_expiry_hours)
     payload = {
-        "sub": user_id,
+        "sub": str(user_id),
         "exp": expire,
         "iat": datetime.now(timezone.utc),
     }
@@ -42,10 +45,11 @@ def decode_access_token(token: str) -> Optional[str]:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
+    db: AsyncSession = Depends(get_db),
+) -> User:
     """
     FastAPI dependency — extracts and validates the JWT from the
-    Authorization header, then fetches and returns the user document.
+    Authorization header, then fetches and returns the user model.
     """
     token = credentials.credentials
     user_id = decode_access_token(token)
@@ -57,15 +61,14 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    db = get_db()
-    from bson import ObjectId
-
     try:
-        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        user_id_int = int(user_id)
+        result = await db.execute(select(User).where(User.id == user_id_int))
+        user = result.scalar_one_or_none()
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Invalid token format",
         )
 
     if user is None:
@@ -79,10 +82,11 @@ async def get_current_user(
 
 async def get_optional_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
-) -> Optional[dict]:
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
     """
     FastAPI dependency — extracts and validates the JWT from the
-    Authorization header if present. Returns user dict or None.
+    Authorization header if present. Returns user or None.
     """
     if credentials is None:
         return None
@@ -93,12 +97,10 @@ async def get_optional_current_user(
     if user_id is None:
         return None
 
-    db = get_db()
-    from bson import ObjectId
-
     try:
-        user = await db.users.find_one({"_id": ObjectId(user_id)})
+        user_id_int = int(user_id)
+        result = await db.execute(select(User).where(User.id == user_id_int))
+        user = result.scalar_one_or_none()
         return user
     except Exception:
         return None
-
