@@ -390,7 +390,7 @@ export function HomePage() {
               </button>
             ))}
             <div className="flex gap-2 pt-2">
-              <button onClick={() => { setIsSOSOpen(true); setIsMobileMenuOpen(false); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.pink }}>{t('header.sos')}</button>
+              <button onClick={() => { setIsSOSOpen(true); setMobileMenuOpen(false); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.pink }}>{t('header.sos')}</button>
               <button onClick={() => navigate("/login")} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.green }}>{t('header.login')}</button>
             </div>
           </div>
