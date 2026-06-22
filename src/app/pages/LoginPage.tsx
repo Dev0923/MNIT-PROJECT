@@ -173,6 +173,9 @@ function MethodTab({ active, onClick, icon, label }: { active: boolean; onClick:
 function DevoteeForm({ tab, setTab, showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword, onLogin }: {
   tab: AuthTab; setTab: (t: AuthTab) => void; showPassword: boolean; setShowPassword: (v: boolean) => void; showConfirmPassword: boolean; setShowConfirmPassword: (v: boolean) => void; onLogin: () => void;
 }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   return (
     <>
       <div className="flex mb-3" style={{ borderBottom: `1px solid ${C.border}` }}>
@@ -184,11 +187,36 @@ function DevoteeForm({ tab, setTab, showPassword, setShowPassword, showConfirmPa
           </button>
         ))}
       </div>
-      <form className="flex flex-col gap-2.5" onSubmit={e => { e.preventDefault(); onLogin(); }}>
+      <form className="flex flex-col gap-2.5" onSubmit={async e => { 
+        e.preventDefault(); 
+        if (tab === "login") {
+          try {
+            const fd = new URLSearchParams();
+            fd.append("username", email);
+            fd.append("password", password);
+            const res = await fetch("http://127.0.0.1:8000/api/v1/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: fd
+            });
+            if (res.ok) {
+              const data = await res.json();
+              localStorage.setItem("access_token", data.access_token);
+              onLogin();
+            } else {
+              alert("Login failed. Please check your credentials.");
+            }
+          } catch (err) {
+            alert("Network error connecting to backend API.");
+          }
+        } else {
+          onLogin();
+        }
+      }}>
         {tab === "signup" && <DarkInput label="Full Name" icon={<User size={15} color={C.orange} />} type="text" placeholder="Enter your full name" />}
-        <DarkInput label="Email Address" icon={<Mail size={15} color={C.orange} />} type="email" placeholder="Enter your email" />
+        <DarkInput label="Email Address" icon={<Mail size={15} color={C.orange} />} type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} />
         {tab === "signup" && <DarkInput label="Phone Number" icon={<Phone size={15} color={C.orange} />} type="tel" placeholder="+91 Enter phone number" />}
-        <PasswordField label="Password" placeholder="Enter your password" show={showPassword} toggle={() => setShowPassword(!showPassword)} />
+        <PasswordField label="Password" placeholder="Enter your password" show={showPassword} toggle={() => setShowPassword(!showPassword)} value={password} onChange={(e) => setPassword(e.target.value)} />
         {tab === "signup" && <PasswordField label="Confirm Password" placeholder="Confirm your password" show={showConfirmPassword} toggle={() => setShowConfirmPassword(!showConfirmPassword)} />}
         {tab === "login" && (
           <div className="flex items-center justify-between">
@@ -224,25 +252,25 @@ function DevoteeForm({ tab, setTab, showPassword, setShowPassword, showConfirmPa
   );
 }
 
-function DarkInput({ label, icon, type, placeholder }: { label: string; icon: React.ReactNode; type: string; placeholder: string }) {
+function DarkInput({ label, icon, type, placeholder, value, onChange }: { label: string; icon: React.ReactNode; type: string; placeholder: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   return (
     <div>
       <label className="block mb-1" style={{ color: C.textMuted, fontSize: "0.72rem", fontWeight: 500 }}>{label}</label>
       <div className="flex items-center rounded-lg border px-3 gap-2" style={{ borderColor: C.border, backgroundColor: C.inputBg }}>
         {icon}
-        <input type={type} placeholder={placeholder} className="flex-1 py-2 outline-none text-sm bg-transparent" style={{ color: C.darkText }} />
+        <input type={type} placeholder={placeholder} className="flex-1 py-2 outline-none text-sm bg-transparent" style={{ color: C.darkText }} value={value} onChange={onChange} />
       </div>
     </div>
   );
 }
 
-function PasswordField({ label, placeholder, show, toggle }: { label: string; placeholder: string; show: boolean; toggle: () => void }) {
+function PasswordField({ label, placeholder, show, toggle, value, onChange }: { label: string; placeholder: string; show: boolean; toggle: () => void; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
   return (
     <div>
       <label className="block mb-1" style={{ color: C.textMuted, fontSize: "0.72rem", fontWeight: 500 }}>{label}</label>
       <div className="flex items-center rounded-lg border px-3 gap-2" style={{ borderColor: C.border, backgroundColor: C.inputBg }}>
         <Lock size={15} color={C.orange} />
-        <input type={show ? "text" : "password"} placeholder={placeholder} className="flex-1 py-2 outline-none text-sm bg-transparent" style={{ color: C.darkText }} />
+        <input type={show ? "text" : "password"} placeholder={placeholder} className="flex-1 py-2 outline-none text-sm bg-transparent" style={{ color: C.darkText }} value={value} onChange={onChange} />
         <button type="button" onClick={toggle} style={{ color: C.textMuted, lineHeight: 0 }}>
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>

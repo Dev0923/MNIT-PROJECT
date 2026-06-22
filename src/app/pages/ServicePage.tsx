@@ -184,7 +184,11 @@ export function ServicePage() {
               </div>
               <button className="w-full py-3 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
                 style={{ backgroundColor: C.orange, boxShadow: `0 4px 14px rgba(247,148,29,0.40)` }}
-                onClick={() => { if (slug === "darshan-pass") navigate("/darshan-booking"); }}
+                onClick={() => { 
+                  if (slug === "darshan-pass") navigate("/darshan-booking"); 
+                  else if (slug === "vehicle-permits") navigate("/services/vehicle-registration");
+                  else if (slug === "officer-login") navigate("/login");
+                }}
               >
                 Proceed to Book
               </button>

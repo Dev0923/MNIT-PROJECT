@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import String, Boolean, DateTime, Date, Time, Text, ForeignKey, Integer, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Uuid as UUID, JSON as JSONB
 from sqlalchemy.sql import func
 from app.db.base import Base
 from app.models.enums import VehicleType, VehicleCategory, PermissionStatus, ScanDirection, LogStatus, PurposeCategory
