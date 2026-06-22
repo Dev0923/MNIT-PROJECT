@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Footer } from "../components/Footer";
 import Slider from "react-slick";
@@ -8,7 +8,7 @@ import "slick-carousel/slick/slick-theme.css";
 import {
   Menu, X, Bell, Clock,
   Phone, MapPin, Shield, Heart,
-  Users2, Car, Sun, ChevronDown,
+  Users2, Car, Sun, ChevronDown, Cloud, CloudRain, CloudSun, CloudLightning,
   Landmark, Stethoscope, ClipboardList,
   HandCoins, UtensilsCrossed,
   Building2, ScrollText,
@@ -73,6 +73,72 @@ export function HomePage() {
     { label: "Donation", icon: <HandCoins        size={16} color={C.orange} />, slug: "donation-portal" },
     { label: "Annadaan", icon: <UtensilsCrossed  size={16} color={C.green}  />, path: "/services/annadaan-seva" },
   ];
+
+  // Live Weather Logic
+  const [weatherTemp, setWeatherTemp] = useState<string>("24°C");
+  const [weatherCode, setWeatherCode] = useState<number>(800); // OpenWeather code for Clear Sky
+
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || "8d2de98e089f1c28e1a22fc19a24ef04";
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=27.3667&lon=75.4000&units=metric&appid=${apiKey}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.main && data.weather && data.weather[0]) {
+            setWeatherTemp(`${Math.round(data.main.temp)}°C`);
+            setWeatherCode(data.weather[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching weather:", err);
+      }
+    }
+    fetchWeather();
+  }, []);
+
+  const weatherInfo = useMemo(() => {
+    let descEn = "Clear sky";
+    let descHi = "साफ आसमान";
+    let iconName = "sun";
+
+    const code = weatherCode;
+    // Map OpenWeather weather codes (see https://openweathermap.org/weather-conditions)
+    if (code === 800) {
+      descEn = "Clear sky";
+      descHi = "साफ आसमान";
+      iconName = "sun";
+    } else if (code === 801) {
+      descEn = "Partly cloudy";
+      descHi = "आंशिक रूप से बादल";
+      iconName = "cloud-sun";
+    } else if (code >= 802 && code <= 804) {
+      descEn = "Cloudy";
+      descHi = "बादल";
+      iconName = "cloud";
+    } else if (code >= 700 && code < 800) {
+      descEn = "Foggy / Mist";
+      descHi = "कोहरा / धुंध";
+      iconName = "cloud";
+    } else if ((code >= 300 && code < 400) || (code >= 500 && code < 600)) {
+      descEn = "Rainy";
+      descHi = "बारिश";
+      iconName = "cloud-rain";
+    } else if (code >= 200 && code < 300) {
+      descEn = "Thunderstorm";
+      descHi = "आंधी-तूफान";
+      iconName = "cloud-lightning";
+    } else {
+      descEn = "Cloudy";
+      descHi = "बादल";
+      iconName = "cloud";
+    }
+
+    return {
+      desc: lang === "hi" ? `${descHi}, खाटू` : `${descEn}, Khatu`,
+      iconName
+    };
+  }, [weatherCode, lang]);
 
   const GALLERY_ITEMS = [
     { label: "Photos",       icon: <Images   size={16} color={C.orange}   />, path: "/gallery" },
@@ -524,7 +590,25 @@ export function HomePage() {
             <StatCard label={t('stats.darshan.label')} value={t('stats.darshan.value')}   sub={t('stats.darshan.sub')} bg={C.darkBlue} icon={<Clock  size={18} color="#fff" />} />
             <StatCard label={t('stats.crowd.label')}     value={t('stats.crowd.value')}  sub={t('stats.crowd.sub')} bg={C.green}    icon={<Users2 size={18} color="#fff" />} />
             <StatCard label={t('stats.parking.label')}    value={t('stats.parking.value')} sub={t('stats.parking.sub')}      bg={C.orange}   icon={<Car    size={18} color="#fff" />} />
-            <StatCard label={t('stats.weather.label')}           value={t('stats.weather.value')}      sub={t('stats.weather.sub')}   bg={C.pink}     icon={<Sun    size={18} color="#fff" />} />
+            <StatCard
+              label={t('stats.weather.label')}
+              value={weatherTemp}
+              sub={weatherInfo.desc}
+              bg={C.pink}
+              icon={
+                weatherInfo.iconName === "sun" ? (
+                  <Sun size={18} color="#fff" />
+                ) : weatherInfo.iconName === "cloud-sun" ? (
+                  <CloudSun size={18} color="#fff" />
+                ) : weatherInfo.iconName === "cloud-rain" ? (
+                  <CloudRain size={18} color="#fff" />
+                ) : weatherInfo.iconName === "cloud-lightning" ? (
+                  <CloudLightning size={18} color="#fff" />
+                ) : (
+                  <Cloud size={18} color="#fff" />
+                )
+              }
+            />
           </div>
 
         </div>
