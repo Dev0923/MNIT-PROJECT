@@ -1,4 +1,5 @@
 aryan papa
+
 ## Tech stack
 
 - React
@@ -10,7 +11,6 @@ aryan papa
 - Pannellum
 - FastAPI + Uvicorn
 - MongoDB database
-
 
 ## Running the code
 

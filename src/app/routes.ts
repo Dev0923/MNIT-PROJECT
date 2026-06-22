@@ -13,6 +13,8 @@ import { SiteMapPage } from "./pages/SiteMapPage";
 import { DarshanBookingPage } from "./pages/DarshanBookingPage";
 import { AdminPage } from "./pages/AdminPage";
 import { AnnadaanPage } from "./pages/AnnadaanPage";
+import { VehiclePermitApplicationPage } from "./pages/VehiclePermitApplicationPage";
+import { VehicleRegistrationPage } from "./pages/VehicleRegistrationPage";
 
 export const router = createBrowserRouter([
   { path: "/", Component: HomePage },
@@ -28,7 +30,8 @@ export const router = createBrowserRouter([
   { path: "/admin", Component: AdminPage },
   { path: "/services/donation-portal", Component: DonationPage },
   { path: "/services/annadaan-seva", Component: AnnadaanPage },
+  { path: "/services/vehicle-registration", Component: VehicleRegistrationPage },
+  { path: "/services/vehicle-permits/apply", Component: VehiclePermitApplicationPage },
   { path: "/services/:slug", Component: ServicePage },
   { path: "*", Component: HomePage },
 ]);
-
