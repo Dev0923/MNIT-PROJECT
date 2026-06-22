@@ -424,7 +424,8 @@ export function HomePage() {
             {t('hero.desc')}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <button className="px-7 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
+            <button onClick={() => navigate("/darshan-booking")}
+              className="px-7 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
               style={{ backgroundColor: C.orange, boxShadow: `0 4px 18px rgba(247,148,29,0.45)` }}>
               {t('hero.bookBtn')}
             </button>
