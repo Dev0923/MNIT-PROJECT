@@ -24,16 +24,16 @@ import imgDonation from "../../imports/donation.png";
 import imgHealth from "../../imports/health camp.jpg.jpeg";
 
 const C = {
-  orange:     "#F7941D",
-  darkBlue:   "#1F2F8C",
-  footerBg:   "#152060",          
-  cream:      "#FDF5E6",
-  white:      "#FFFFFF",
-  green:      "#28A745",
-  pink:       "#E97B8C",
-  darkText:   "#333333",
-  border:     "#E5E5E5",
-  muted:      "#666666",
+  orange: "#F7941D",
+  darkBlue: "#1F2F8C",
+  footerBg: "#152060",
+  cream: "#FDF5E6",
+  white: "#FFFFFF",
+  green: "#28A745",
+  pink: "#E97B8C",
+  darkText: "#333333",
+  border: "#E5E5E5",
+  muted: "#666666",
 };
 
 const NAV_KEYS = ["home", "about", "crowd", "permission", "liveDarshan", "melaMap", "gallery", "donation", "help"];
@@ -109,60 +109,60 @@ export function HomePage() {
       iconName
     };
   }, [weatherCode, lang]);
-  
+
   const isLoggedIn = !!localStorage.getItem("token");
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeNav, setActiveNav]           = useState("home");
-  const [isSOSOpen, setIsSOSOpen]           = useState(false);
-  const [permOpen, setPermOpen]             = useState(false);
+  const [activeNav, setActiveNav] = useState("home");
+  const [isSOSOpen, setIsSOSOpen] = useState(false);
+  const [permOpen, setPermOpen] = useState(false);
   const [mobilePermOpen, setMobilePermOpen] = useState(false);
-  const [donationOpen, setDonationOpen]     = useState(false);
+  const [donationOpen, setDonationOpen] = useState(false);
   const [mobileDonationOpen, setMobileDonationOpen] = useState(false);
-  const [aboutOpen, setAboutOpen]             = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
-  const [galleryOpen, setGalleryOpen]             = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [mobileGalleryOpen, setMobileGalleryOpen] = useState(false);
-  const [templeSubOpen, setTempleSubOpen]   = useState(false);
+  const [templeSubOpen, setTempleSubOpen] = useState(false);
   const [mobileTempleSubOpen, setMobileTempleSubOpen] = useState(false);
   const [historySubOpen, setHistorySubOpen] = useState(false);
   const [mobileHistorySubOpen, setMobileHistorySubOpen] = useState(false);
 
   const PERMISSION_ITEMS = [
-    { label: "Vehicle Permission",  icon: <Car         size={16} color={C.pink}   />, slug: "vehicle-permits" },
-    { label: "Bandhara Permission", icon: <Landmark    size={16} color={C.darkBlue} />, slug: "bandhara-permission" },
-    { label: "Medical Camp",        icon: <Stethoscope size={16} color="#9333EA"  />, slug: "medical-camp" },
-    { label: "Other Permissions",   icon: <ClipboardList size={16} color={C.orange} />, slug: "other-permissions" },
+    { label: "Vehicle Permission", icon: <Car size={16} color={C.pink} />, slug: "vehicle-permits" },
+    { label: "Bandhara Permission", icon: <Landmark size={16} color={C.darkBlue} />, slug: "bandhara-permission" },
+    { label: "Medical Camp", icon: <Stethoscope size={16} color="#9333EA" />, slug: "medical-camp" },
+    { label: "Other Permissions", icon: <ClipboardList size={16} color={C.orange} />, slug: "other-permissions" },
   ];
 
   const DONATION_ITEMS = [
-    { label: "Donation", icon: <HandCoins        size={16} color={C.orange} />, slug: "donation-portal" },
-    { label: "Annadaan", icon: <UtensilsCrossed  size={16} color={C.green}  />, path: "/services/annadaan-seva" },
+    { label: "Donation", icon: <HandCoins size={16} color={C.orange} />, slug: "donation-portal" },
+    { label: "Annadaan", icon: <UtensilsCrossed size={16} color={C.green} />, path: "/services/annadaan-seva" },
   ];
 
 
 
   const GALLERY_ITEMS = [
-    { label: "Photos",       icon: <Images   size={16} color={C.orange}   />, path: "/gallery" },
-    { label: "Videos",       icon: <Video    size={16} color={C.darkBlue} />, path: "/gallery/videos" },
-    { label: "Virtual Tour", icon: <Rotate3d size={16} color="#9333EA"    />, path: "/gallery/virtual-tour" },
+    { label: "Photos", icon: <Images size={16} color={C.orange} />, path: "/gallery" },
+    { label: "Videos", icon: <Video size={16} color={C.darkBlue} />, path: "/gallery/videos" },
+    { label: "Virtual Tour", icon: <Rotate3d size={16} color="#9333EA" />, path: "/gallery/virtual-tour" },
   ];
 
   const TEMPLE_SUB_ITEMS = [
-    { label: "About Temple",   icon: <InfoIcon     size={15} color={C.orange}   />, slug: "about-temple" },
-    { label: "Temple Timings", icon: <Clock        size={15} color={C.darkBlue} />, slug: "temple-timings" },
-    { label: "Important Days", icon: <StarIcon     size={15} color={C.pink}     />, slug: "important-days" },
-    { label: "News And Events",icon: <Newspaper    size={15} color={C.green}    />, slug: "news-events" },
+    { label: "About Temple", icon: <InfoIcon size={15} color={C.orange} />, slug: "about-temple" },
+    { label: "Temple Timings", icon: <Clock size={15} color={C.darkBlue} />, slug: "temple-timings" },
+    { label: "Important Days", icon: <StarIcon size={15} color={C.pink} />, slug: "important-days" },
+    { label: "News And Events", icon: <Newspaper size={15} color={C.green} />, slug: "news-events" },
   ];
 
   const HISTORY_SUB_ITEMS = [
-    { label: "Temple History", icon: <BookOpen  size={15} color={C.darkBlue} />, slug: "temple-history" },
-    { label: "About Khatu",    icon: <MapPinned size={15} color={C.green}    />, slug: "about-khatu" },
+    { label: "Temple History", icon: <BookOpen size={15} color={C.darkBlue} />, slug: "temple-history" },
+    { label: "About Khatu", icon: <MapPinned size={15} color={C.green} />, slug: "about-khatu" },
   ];
 
   const ABOUT_ITEMS: Array<{ label: string; icon: React.ReactNode; slug: string; subItems?: typeof TEMPLE_SUB_ITEMS }> = [
-    { label: "Temple",  icon: <Building2   size={16} color={C.orange}   />, slug: "about-temple",  subItems: TEMPLE_SUB_ITEMS },
-    { label: "History", icon: <ScrollText  size={16} color={C.darkBlue} />, slug: "about-history", subItems: HISTORY_SUB_ITEMS },
+    { label: "Temple", icon: <Building2 size={16} color={C.orange} />, slug: "about-temple", subItems: TEMPLE_SUB_ITEMS },
+    { label: "History", icon: <ScrollText size={16} color={C.darkBlue} />, slug: "about-history", subItems: HISTORY_SUB_ITEMS },
   ];
 
   return (
@@ -215,10 +215,10 @@ export function HomePage() {
           <nav className="hidden lg:flex items-center gap-1">
             {NAV_KEYS.map(link => (link === "permission" || link === "donation" || link === "about" || link === "gallery") ? (
               (() => {
-                const open    = link === "permission" ? permOpen    : link === "donation" ? donationOpen : link === "gallery" ? galleryOpen : aboutOpen;
+                const open = link === "permission" ? permOpen : link === "donation" ? donationOpen : link === "gallery" ? galleryOpen : aboutOpen;
                 const setOpen = link === "permission" ? setPermOpen : link === "donation" ? setDonationOpen : link === "gallery" ? setGalleryOpen : setAboutOpen;
-                const items   = link === "permission" ? PERMISSION_ITEMS : link === "donation" ? DONATION_ITEMS : link === "gallery" ? GALLERY_ITEMS : ABOUT_ITEMS;
-                const minW    = link === "permission" ? "230px" : "160px";
+                const items = link === "permission" ? PERMISSION_ITEMS : link === "donation" ? DONATION_ITEMS : link === "gallery" ? GALLERY_ITEMS : ABOUT_ITEMS;
+                const minW = link === "permission" ? "230px" : "160px";
                 return (
                   <div key={link} className="relative"
                     onMouseEnter={() => setOpen(true)}
@@ -240,7 +240,7 @@ export function HomePage() {
                             const hasSub = !!item.subItems;
                             const subKey = item.label;
                             const subOpen = subKey === "Temple" ? templeSubOpen : subKey === "History" ? historySubOpen : false;
-                            const setSubOpen = subKey === "Temple" ? setTempleSubOpen : subKey === "History" ? setHistorySubOpen : () => {};
+                            const setSubOpen = subKey === "Temple" ? setTempleSubOpen : subKey === "History" ? setHistorySubOpen : () => { };
                             return (
                               <div key={item.label} className="relative"
                                 onMouseEnter={() => hasSub && setSubOpen(true)}
@@ -294,11 +294,11 @@ export function HomePage() {
               })()
             ) : (
               <button key={link} onClick={() => {
-                  setActiveNav(link);
-                  if (link === "melaMap") navigate("/mela-map");
-                  if (link === "help") navigate("/help");
-                  if (link === "liveDarshan") navigate("/live-darshan");
-                }}
+                setActiveNav(link);
+                if (link === "melaMap") navigate("/mela-map");
+                if (link === "help") navigate("/help");
+                if (link === "liveDarshan") navigate("/live-darshan");
+              }}
                 className="px-3 py-2 text-xs font-semibold rounded-md transition-all relative"
                 style={{ color: activeNav === link ? C.darkBlue : C.muted }}>
                 {t(`nav.${link}`)}
@@ -342,9 +342,9 @@ export function HomePage() {
           <div className="lg:hidden px-4 pb-4 flex flex-col gap-2" style={{ backgroundColor: C.white, borderTop: `1px solid ${C.border}` }}>
             {NAV_KEYS.map(link => (link === "permission" || link === "donation" || link === "about" || link === "gallery") ? (
               (() => {
-                const open    = link === "permission" ? mobilePermOpen    : link === "donation" ? mobileDonationOpen : link === "gallery" ? mobileGalleryOpen : mobileAboutOpen;
+                const open = link === "permission" ? mobilePermOpen : link === "donation" ? mobileDonationOpen : link === "gallery" ? mobileGalleryOpen : mobileAboutOpen;
                 const setOpen = link === "permission" ? setMobilePermOpen : link === "donation" ? setMobileDonationOpen : link === "gallery" ? setMobileGalleryOpen : setMobileAboutOpen;
-                const items   = link === "permission" ? PERMISSION_ITEMS  : link === "donation" ? DONATION_ITEMS : link === "gallery" ? GALLERY_ITEMS : ABOUT_ITEMS;
+                const items = link === "permission" ? PERMISSION_ITEMS : link === "donation" ? DONATION_ITEMS : link === "gallery" ? GALLERY_ITEMS : ABOUT_ITEMS;
                 return (
                   <div key={link}>
                     <button onClick={() => setOpen(!open)}
@@ -359,7 +359,7 @@ export function HomePage() {
                           const hasSub = !!item.subItems;
                           const subKey = item.label;
                           const subOpen = subKey === "Temple" ? mobileTempleSubOpen : subKey === "History" ? mobileHistorySubOpen : false;
-                          const setSubOpen = subKey === "Temple" ? setMobileTempleSubOpen : subKey === "History" ? setMobileHistorySubOpen : (_: boolean) => {};
+                          const setSubOpen = subKey === "Temple" ? setMobileTempleSubOpen : subKey === "History" ? setMobileHistorySubOpen : (_: boolean) => { };
                           return (
                             <div key={item.label}>
                               <button
@@ -398,11 +398,11 @@ export function HomePage() {
               })()
             ) : (
               <button key={link} onClick={() => {
-                  setActiveNav(link); setMobileMenuOpen(false);
-                  if (link === "melaMap") navigate("/mela-map");
-                  if (link === "help") navigate("/help");
-                  if (link === "liveDarshan") navigate("/live-darshan");
-                }}
+                setActiveNav(link); setMobileMenuOpen(false);
+                if (link === "melaMap") navigate("/mela-map");
+                if (link === "help") navigate("/help");
+                if (link === "liveDarshan") navigate("/live-darshan");
+              }}
                 className="text-left py-2 px-3 rounded-md text-sm font-medium"
                 style={{ color: activeNav === link ? C.orange : C.darkText, backgroundColor: activeNav === link ? `${C.orange}15` : "transparent" }}>
                 {t(`nav.${link}`)}
@@ -570,11 +570,11 @@ export function HomePage() {
                 </thead>
                 <tbody>
                   {[
-                    { name: "Mangala Aarti",  winter: "05:30 AM", summer: "04:30 AM" },
+                    { name: "Mangala Aarti", winter: "05:30 AM", summer: "04:30 AM" },
                     { name: "Shringar Aarti", winter: "08:00 AM", summer: "07:00 AM" },
-                    { name: "Bhog Aarti",     winter: "12:30 PM", summer: "12:00 PM" },
-                    { name: "Sandhya Aarti",  winter: "06:30 PM", summer: "07:30 PM" },
-                    { name: "Shayan Aarti",   winter: "09:00 PM", summer: "10:00 PM" },
+                    { name: "Bhog Aarti", winter: "12:30 PM", summer: "12:00 PM" },
+                    { name: "Sandhya Aarti", winter: "06:30 PM", summer: "07:30 PM" },
+                    { name: "Shayan Aarti", winter: "09:00 PM", summer: "10:00 PM" },
                   ].map((row, i) => (
                     <tr key={i} style={{ backgroundColor: i % 2 === 0 ? C.white : C.cream, borderTop: `1px solid ${C.border}` }}>
                       <td className="px-5 py-3 text-xs font-medium" style={{ color: C.darkText }}>{row.name}</td>
@@ -589,9 +589,9 @@ export function HomePage() {
 
           {/* Row 2: Live Stat Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label={t('stats.darshan.label')} value={t('stats.darshan.value')}   sub={t('stats.darshan.sub')} bg={C.darkBlue} icon={<Clock  size={18} color="#fff" />} />
-            <StatCard label={t('stats.crowd.label')}     value={t('stats.crowd.value')}  sub={t('stats.crowd.sub')} bg={C.green}    icon={<Users2 size={18} color="#fff" />} />
-            <StatCard label={t('stats.parking.label')}    value={t('stats.parking.value')} sub={t('stats.parking.sub')}      bg={C.orange}   icon={<Car    size={18} color="#fff" />} />
+            <StatCard label={t('stats.darshan.label')} value={t('stats.darshan.value')} sub={t('stats.darshan.sub')} bg={C.darkBlue} icon={<Clock size={18} color="#fff" />} />
+            <StatCard label={t('stats.crowd.label')} value={t('stats.crowd.value')} sub={t('stats.crowd.sub')} bg={C.green} icon={<Users2 size={18} color="#fff" />} />
+            <StatCard label={t('stats.parking.label')} value={t('stats.parking.value')} sub={t('stats.parking.sub')} bg={C.orange} icon={<Car size={18} color="#fff" />} />
             <StatCard
               label={t('stats.weather.label')}
               value={weatherTemp}
@@ -638,8 +638,8 @@ export function HomePage() {
             responsive={[
               { breakpoint: 1280, settings: { slidesToShow: 4 } },
               { breakpoint: 1024, settings: { slidesToShow: 3 } },
-              { breakpoint: 768,  settings: { slidesToShow: 2 } },
-              { breakpoint: 540,  settings: { slidesToShow: 1 } },
+              { breakpoint: 768, settings: { slidesToShow: 2 } },
+              { breakpoint: 540, settings: { slidesToShow: 1 } },
             ]}
           >
             {[
@@ -730,32 +730,32 @@ export function HomePage() {
               },
             ].map(s => (
               <div key={s.title} className="px-2 pb-2 h-full">
-              <div
-                className="rounded-lg overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full"
-                style={{ backgroundColor: C.white, border: `1px solid ${C.border}`, boxShadow: "0 2px 8px rgba(31,47,140,0.06)" }}>
-                <div className="text-center pt-4 pb-3 px-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <h3 className="font-bold text-sm" style={{ color: C.orange, fontFamily: "'Georgia', serif" }}>{s.title}</h3>
+                <div
+                  className="rounded-lg overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col h-full"
+                  style={{ backgroundColor: C.white, border: `1px solid ${C.border}`, boxShadow: "0 2px 8px rgba(31,47,140,0.06)" }}>
+                  <div className="text-center pt-4 pb-3 px-3" style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <h3 className="font-bold text-sm" style={{ color: C.orange, fontFamily: "'Georgia', serif" }}>{s.title}</h3>
+                  </div>
+                  <div className="w-full" style={{ height: "140px" }}>
+                    <img src={s.img} alt={s.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-4 flex-1">
+                    <p className="text-xs leading-relaxed" style={{ color: C.muted }}>{s.desc}</p>
+                  </div>
+                  <div className="px-4 pb-4">
+                    <button
+                      onClick={() => navigate((s as any).path ?? (s.slug === "darshan-pass" ? "/darshan-booking" : s.slug === "officer-login" ? "/login" : `/services/${s.slug}`))}
+                      className="w-full py-2.5 rounded-md text-sm font-bold text-white transition-all hover:opacity-95 cursor-pointer"
+                      style={{
+                        background: `linear-gradient(90deg, #F7941D 0%, #F26A21 100%)`,
+                        color: C.white,
+                        boxShadow: `0 4px 12px rgba(247,148,29,0.35)`,
+                        fontFamily: "'Georgia', serif",
+                      }}>
+                      {s.cta}
+                    </button>
+                  </div>
                 </div>
-                <div className="w-full" style={{ height: "140px" }}>
-                  <img src={s.img} alt={s.title} className="w-full h-full object-cover" />
-                </div>
-                <div className="p-4 flex-1">
-                  <p className="text-xs leading-relaxed" style={{ color: C.muted }}>{s.desc}</p>
-                </div>
-                <div className="px-4 pb-4">
-                  <button
-                    onClick={() => navigate((s as any).path ?? (s.slug === "darshan-pass" ? "/darshan-booking" : s.slug === "officer-login" ? "/login" : `/services/${s.slug}`))}
-                    className="w-full py-2.5 rounded-md text-sm font-bold text-white transition-all hover:opacity-95 cursor-pointer"
-                    style={{
-                      background: `linear-gradient(90deg, #F7941D 0%, #F26A21 100%)`,
-                      color: C.white,
-                      boxShadow: `0 4px 12px rgba(247,148,29,0.35)`,
-                      fontFamily: "'Georgia', serif",
-                    }}>
-                    {s.cta}
-                  </button>
-                </div>
-              </div>
               </div>
             ))}
           </Slider>
@@ -824,7 +824,7 @@ export function HomePage() {
             <button onClick={() => setIsSOSOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-800 transition-colors">
               <X size={20} />
             </button>
-            
+
             <div className="flex flex-col items-center text-center gap-2 mb-6 mt-2">
               <div className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse" style={{ backgroundColor: `${C.pink}20`, color: C.pink }}>
                 <ShieldAlert size={32} />
@@ -837,21 +837,21 @@ export function HomePage() {
 
             <div className="flex flex-col gap-3 mb-6">
               <a href="tel:112" className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-gray-50" style={{ border: `1px solid ${C.border}` }}>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.pink}15`, color: C.pink }}><Phone size={18}/></div>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.pink}15`, color: C.pink }}><Phone size={18} /></div>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-bold" style={{ color: C.darkText }}>Police & General SOS</p>
                   <p className="text-xs" style={{ color: C.muted }}>Dial 112 or 100</p>
                 </div>
               </a>
               <a href="tel:108" className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-gray-50" style={{ border: `1px solid ${C.border}` }}>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.orange}15`, color: C.orange }}><Heart size={18}/></div>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.orange}15`, color: C.orange }}><Heart size={18} /></div>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-bold" style={{ color: C.darkText }}>Medical Emergency</p>
                   <p className="text-xs" style={{ color: C.muted }}>Dial 108</p>
                 </div>
               </a>
               <a href="tel:01576221000" className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-gray-50" style={{ border: `1px solid ${C.border}` }}>
-                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.darkBlue}15`, color: C.darkBlue }}><Shield size={18}/></div>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.darkBlue}15`, color: C.darkBlue }}><Shield size={18} /></div>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-bold" style={{ color: C.darkText }}>Mela Control Room</p>
                   <p className="text-xs" style={{ color: C.muted }}>Dial 01576-221000</p>
