@@ -15,6 +15,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { AnnadaanPage } from "./pages/AnnadaanPage";
 import { VehiclePermitApplicationPage } from "./pages/VehiclePermitApplicationPage";
 import { VehicleRegistrationPage } from "./pages/VehicleRegistrationPage";
+import { AboutTemplePage } from "./pages/AboutTemplePage";
 
 export const router = createBrowserRouter([
   { path: "/", Component: HomePage },
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
   { path: "/services/annadaan-seva", Component: AnnadaanPage },
   { path: "/services/vehicle-registration", Component: VehicleRegistrationPage },
   { path: "/services/vehicle-permits/apply", Component: VehiclePermitApplicationPage },
+  { path: "/services/about-temple", Component: AboutTemplePage },
   { path: "/services/:slug", Component: ServicePage },
   { path: "*", Component: HomePage },
 ]);

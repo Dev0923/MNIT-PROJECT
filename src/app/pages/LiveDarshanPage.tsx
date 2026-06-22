@@ -131,15 +131,17 @@ export function LiveDarshanPage() {
           {/* Player */}
           <div className="relative rounded-2xl overflow-hidden shadow-xl"
             style={{ aspectRatio: "16 / 9", backgroundColor: "#000", border: `1px solid ${C.border}` }}>
-            <img src={templeImg} alt="Live Darshan"
-              className="absolute inset-0 w-full h-full object-cover"
-              style={{ filter: playing ? "none" : "blur(8px) brightness(0.7)" }} />
-            {/* gradient overlay */}
-            <div className="absolute inset-0 pointer-events-none"
-              style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.40) 0%, transparent 30%, transparent 60%, rgba(0,0,0,0.75) 100%)" }} />
+            <iframe
+              src="https://www.youtube.com/embed/iGsy-UoXWmI?autoplay=1&mute=1&controls=1&rel=0"
+              title="Khatu Shyam Ji Live Darshan"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+            ></iframe>
 
             {/* Top-left badges */}
-            <div className="absolute top-3 left-3 flex items-center gap-2">
+            <div className="absolute top-3 left-3 flex items-center gap-2 pointer-events-none z-10">
               <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider text-white"
                 style={{ backgroundColor: C.live, boxShadow: "0 0 0 0 rgba(225,29,72,0.7)", animation: "livePulse 1.6s infinite" }}>
                 <span className="w-1.5 h-1.5 rounded-full bg-white" /> LIVE
@@ -151,48 +153,9 @@ export function LiveDarshanPage() {
             </div>
 
             {/* Top-right camera switcher */}
-            <div className="absolute top-3 right-3 px-3 py-1.5 rounded-md text-[10px] font-bold text-white flex items-center gap-1"
+            <div className="absolute top-3 right-3 px-3 py-1.5 rounded-md text-[10px] font-bold text-white flex items-center gap-1 pointer-events-none z-10"
               style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
               <Camera size={11} /> {CAMERA_ANGLES.find(c => c.id === angle)?.label}
-            </div>
-
-            {/* Center play overlay when paused */}
-            {!playing && (
-              <button onClick={() => setPlaying(true)}
-                className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: "rgba(247,148,29,0.95)", boxShadow: "0 8px 30px rgba(0,0,0,0.4)" }}>
-                  <Play size={32} color="#fff" fill="#fff" />
-                </div>
-              </button>
-            )}
-
-            {/* Bottom controls */}
-            <div className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center gap-2">
-              <button onClick={() => setPlaying(!playing)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
-                {playing ? <Pause size={14} /> : <Play size={14} fill="#fff" />}
-              </button>
-              <button onClick={() => setMuted(!muted)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
-                {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              </button>
-              {/* progress bar (live) */}
-              <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.25)" }}>
-                <div className="h-full" style={{ width: "100%", backgroundColor: C.live }} />
-              </div>
-              <span className="text-[10px] font-bold text-white px-1.5 py-0.5 rounded"
-                style={{ backgroundColor: C.live }}>LIVE</span>
-              <button className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
-                <Settings size={14} />
-              </button>
-              <button className="w-9 h-9 rounded-full flex items-center justify-center text-white"
-                style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
-                <Maximize size={14} />
-              </button>
             </div>
           </div>
 

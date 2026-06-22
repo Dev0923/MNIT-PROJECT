@@ -102,6 +102,8 @@ export function HomePage() {
     };
   }, [weatherCode, lang]);
   
+  const isLoggedIn = !!localStorage.getItem("token");
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNav, setActiveNav]           = useState("home");
   const [isSOSOpen, setIsSOSOpen]           = useState(false);
@@ -129,6 +131,72 @@ export function HomePage() {
     { label: "Donation", icon: <HandCoins        size={16} color={C.orange} />, slug: "donation-portal" },
     { label: "Annadaan", icon: <UtensilsCrossed  size={16} color={C.green}  />, path: "/services/annadaan-seva" },
   ];
+
+  // Live Weather Logic
+  const [weatherTemp, setWeatherTemp] = useState<string>("24°C");
+  const [weatherCode, setWeatherCode] = useState<number>(800); // OpenWeather code for Clear Sky
+
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || "8d2de98e089f1c28e1a22fc19a24ef04";
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=27.3667&lon=75.4000&units=metric&appid=${apiKey}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.main && data.weather && data.weather[0]) {
+            setWeatherTemp(`${Math.round(data.main.temp)}°C`);
+            setWeatherCode(data.weather[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching weather:", err);
+      }
+    }
+    fetchWeather();
+  }, []);
+
+  const weatherInfo = useMemo(() => {
+    let descEn = "Clear sky";
+    let descHi = "साफ आसमान";
+    let iconName = "sun";
+
+    const code = weatherCode;
+    // Map OpenWeather weather codes (see https://openweathermap.org/weather-conditions)
+    if (code === 800) {
+      descEn = "Clear sky";
+      descHi = "साफ आसमान";
+      iconName = "sun";
+    } else if (code === 801) {
+      descEn = "Partly cloudy";
+      descHi = "आंशिक रूप से बादल";
+      iconName = "cloud-sun";
+    } else if (code >= 802 && code <= 804) {
+      descEn = "Cloudy";
+      descHi = "बादल";
+      iconName = "cloud";
+    } else if (code >= 700 && code < 800) {
+      descEn = "Foggy / Mist";
+      descHi = "कोहरा / धुंध";
+      iconName = "cloud";
+    } else if ((code >= 300 && code < 400) || (code >= 500 && code < 600)) {
+      descEn = "Rainy";
+      descHi = "बारिश";
+      iconName = "cloud-rain";
+    } else if (code >= 200 && code < 300) {
+      descEn = "Thunderstorm";
+      descHi = "आंधी-तूफान";
+      iconName = "cloud-lightning";
+    } else {
+      descEn = "Cloudy";
+      descHi = "बादल";
+      iconName = "cloud";
+    }
+
+    return {
+      desc: lang === "hi" ? `${descHi}, खाटू` : `${descEn}, Khatu`,
+      iconName
+    };
+  }, [weatherCode, lang]);
 
   const GALLERY_ITEMS = [
     { label: "Photos",       icon: <Images   size={16} color={C.orange}   />, path: "/gallery" },
@@ -304,11 +372,19 @@ export function HomePage() {
               style={{ backgroundColor: C.pink }}>
               {t('header.sos')}
             </button>
-            <button onClick={() => navigate("/login")}
-              className="px-4 py-1.5 rounded-md text-xs font-bold text-white transition-all hover:opacity-90"
-              style={{ backgroundColor: C.green }}>
-              {t('header.login')}
-            </button>
+            {!isLoggedIn ? (
+              <button onClick={() => navigate("/login")}
+                className="px-4 py-1.5 rounded-md text-xs font-bold text-white transition-all hover:opacity-90"
+                style={{ backgroundColor: C.green }}>
+                {t('header.login')}
+              </button>
+            ) : (
+              <button onClick={() => { localStorage.clear(); window.location.reload(); }}
+                className="px-4 py-1.5 rounded-md text-xs font-bold text-white transition-all hover:opacity-90"
+                style={{ backgroundColor: C.muted }}>
+                Logout
+              </button>
+            )}
           </div>
 
           {/* Mobile toggle */}
@@ -391,7 +467,11 @@ export function HomePage() {
             ))}
             <div className="flex gap-2 pt-2">
               <button onClick={() => { setIsSOSOpen(true); setMobileMenuOpen(false); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.pink }}>{t('header.sos')}</button>
-              <button onClick={() => navigate("/login")} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.green }}>{t('header.login')}</button>
+              {!isLoggedIn ? (
+                <button onClick={() => { navigate("/login"); setMobileMenuOpen(false); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.green }}>{t('header.login')}</button>
+              ) : (
+                <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.muted }}>Logout</button>
+              )}
             </div>
           </div>
         )}
@@ -429,11 +509,13 @@ export function HomePage() {
               style={{ backgroundColor: C.orange, boxShadow: `0 4px 18px rgba(247,148,29,0.45)` }}>
               {t('hero.bookBtn')}
             </button>
-            <button onClick={() => navigate("/login")}
-              className="px-7 py-2.5 rounded-full text-sm font-bold border-2 transition-all"
-              style={{ borderColor: C.white, color: C.white, backgroundColor: "rgba(255,255,255,0.10)" }}>
-              {t('hero.loginBtn')}
-            </button>
+            {!isLoggedIn && (
+              <button onClick={() => navigate("/login")}
+                className="px-7 py-2.5 rounded-full text-sm font-bold border-2 transition-all"
+                style={{ borderColor: C.white, color: C.white, backgroundColor: "rgba(255,255,255,0.10)" }}>
+                {t('hero.loginBtn')}
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -738,24 +820,26 @@ export function HomePage() {
       </section>
 
       {/* ── CTA Banner ──────────────────────────────────── */}
-      <section className="py-12 px-6 text-center relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${C.darkBlue} 0%, #2a3fa8 100%)` }}>
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
-          backgroundSize: "20px 20px",
-        }} />
-        <div className="relative">
-          <p className="text-xs uppercase tracking-widest mb-2 font-semibold" style={{ color: C.orange }}>{t('cta.subtitle')}</p>
-          <h2 className="text-2xl font-bold text-white mb-2">{t('cta.title')}</h2>
-          <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.75)" }}>
-            {t('cta.desc')}
-          </p>
-          <button onClick={() => navigate("/login")}
-            className="px-8 py-3 rounded-full text-sm font-bold transition-all hover:opacity-90"
-            style={{ backgroundColor: C.orange, color: C.white, boxShadow: `0 4px 18px rgba(247,148,29,0.45)` }}>
-            {t('cta.btn')}
-          </button>
-        </div>
-      </section>
+      {!isLoggedIn && (
+        <section className="py-12 px-6 text-center relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${C.darkBlue} 0%, #2a3fa8 100%)` }}>
+          <div className="absolute inset-0 opacity-5" style={{
+            backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }} />
+          <div className="relative">
+            <p className="text-xs uppercase tracking-widest mb-2 font-semibold" style={{ color: C.orange }}>{t('cta.subtitle')}</p>
+            <h2 className="text-2xl font-bold text-white mb-2">{t('cta.title')}</h2>
+            <p className="text-sm mb-6 max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.75)" }}>
+              {t('cta.desc')}
+            </p>
+            <button onClick={() => navigate("/login")}
+              className="px-8 py-3 rounded-full text-sm font-bold transition-all hover:opacity-90"
+              style={{ backgroundColor: C.orange, color: C.white, boxShadow: `0 4px 18px rgba(247,148,29,0.45)` }}>
+              {t('cta.btn')}
+            </button>
+          </div>
+        </section>
+      )}
 
       <Footer />
 
