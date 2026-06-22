@@ -1,4 +1,4 @@
-Hii i am divyansh
+
 ## Tech stack
 
 - React
