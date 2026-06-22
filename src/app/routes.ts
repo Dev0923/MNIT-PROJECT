@@ -17,6 +17,7 @@ import { VehiclePermitApplicationPage } from "./pages/VehiclePermitApplicationPa
 import { VehicleRegistrationPage } from "./pages/VehicleRegistrationPage";
 import { AboutTemplePage } from "./pages/AboutTemplePage";
 import { TempleTimingsPage } from "./pages/TempleTimingsPage";
+import { TempleHistoryPage } from "./pages/TempleHistoryPage";
 
 export const router = createBrowserRouter([
   { path: "/", Component: HomePage },
@@ -36,6 +37,7 @@ export const router = createBrowserRouter([
   { path: "/services/vehicle-permits/apply", Component: VehiclePermitApplicationPage },
   { path: "/services/about-temple", Component: AboutTemplePage },
   { path: "/services/temple-timings", Component: TempleTimingsPage },
+  { path: "/services/temple-history", Component: TempleHistoryPage },
   { path: "/services/:slug", Component: ServicePage },
   { path: "*", Component: HomePage },
 ]);
