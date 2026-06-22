@@ -209,10 +209,22 @@ function Table({ cols, rows }: { cols: string[]; rows: React.ReactNode[][] }) {
 /* ═══════════════════════════════════════════════════════════
    SECTION: DASHBOARD
 ═══════════════════════════════════════════════════════════ */
-function Dashboard() {
-  const totalDonated = DONATIONS.filter(d => d.status === "completed").reduce((s, d) => s + d.amount, 0);
-  const pendingPerms = PERMISSIONS.filter(p => p.status === "pending").length;
-  const openTickets = TICKETS.filter(t => t.status === "open").length;
+function Dashboard({
+  stats,
+  donations,
+  vehiclePermits,
+  tickets,
+  onApproveVehicle,
+}: {
+  stats: any;
+  donations: any[];
+  vehiclePermits: any[];
+  tickets: any[];
+  onApproveVehicle: (dbId: number, status: string) => void;
+}) {
+  const totalDonated = stats.totalDonations;
+  const pendingPerms = stats.pendingApprovals;
+  const openTickets = stats.openTickets;
 
   return (
     <div>
@@ -222,7 +234,7 @@ function Dashboard() {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
         <Kpi label="Total Donations" value={`₹${(totalDonated / 1000).toFixed(0)}K`} sub="+12% from last week" icon={<IndianRupee size={20} />} color={C.green} trend="up" />
         <Kpi label="Pending Approvals" value={String(pendingPerms)} sub="Need your review" icon={<ClipboardList size={20} />} color={C.orange} trend="down" />
-        <Kpi label="Active E-Passes" value="847" sub="Online + offline today" icon={<UserCheck size={20} />} color={C.darkBlue} trend="up" />
+        <Kpi label="Active E-Passes" value={String(stats.activePasses)} sub="Online + offline today" icon={<UserCheck size={20} />} color={C.darkBlue} trend="up" />
         <Kpi label="Open Support Tickets" value={String(openTickets)} sub="Awaiting response" icon={<MessageCircle size={20} />} color={C.pink} />
       </div>
 
@@ -232,7 +244,7 @@ function Dashboard() {
           { label: "Darshan Wait", value: "45 Mins", color: C.darkBlue, icon: <Clock size={14} /> },
           { label: "Crowd Level", value: "Moderate", color: C.orange, icon: <Users2 size={14} /> },
           { label: "Parking", value: "Available", color: C.green, icon: <Car size={14} /> },
-          { label: "Active Passes", value: "847", color: "#8B5CF6", icon: <UserCheck size={14} /> },
+          { label: "Active Passes", value: String(stats.activePasses), color: "#8B5CF6", icon: <UserCheck size={14} /> },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-xl px-4 py-3 flex items-center gap-3"
             style={{ border: `1px solid ${C.border}`, borderTop: `3px solid ${s.color}` }}>
@@ -250,8 +262,8 @@ function Dashboard() {
         <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${C.border}` }}>
           <p className="text-sm font-bold mb-4" style={{ color: C.text }}>Recent Donations</p>
           <div className="flex flex-col gap-3">
-            {DONATIONS.slice(0, 5).map(d => (
-              <div key={d.id} className="flex items-center gap-3">
+            {donations.slice(0, 5).map((d, index) => (
+              <div key={d.id || index} className="flex items-center gap-3">
                 <Avatar name={d.name} />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold truncate" style={{ color: C.text }}>{d.name}</p>
@@ -270,23 +282,23 @@ function Dashboard() {
         <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${C.border}` }}>
           <p className="text-sm font-bold mb-4" style={{ color: C.text }}>Pending Approvals</p>
           <div className="flex flex-col gap-2">
-            {PERMISSIONS.filter(p => p.status === "pending").map(p => (
-              <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+            {vehiclePermits.filter(p => p.status === "pending").map((p, index) => (
+              <div key={p.id || index} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                 style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold" style={{ color: C.text }}>{p.name}</p>
+                  <p className="text-xs font-semibold" style={{ color: C.text }}>{p.vehicle}</p>
                   <p className="text-[11px]" style={{ color: C.muted }}>{p.type} · {p.purpose}</p>
                 </div>
                 <div className="flex gap-1.5">
-                  <button className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
+                  <button onClick={() => onApproveVehicle(p.db_id, "approved")} className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
                     style={{ backgroundColor: `${C.green}15`, color: C.green }}><Check size={10} />OK</button>
-                  <button className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
+                  <button onClick={() => onApproveVehicle(p.db_id, "denied")} className="px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1"
                     style={{ backgroundColor: `${C.red}15`, color: C.red }}><X size={10} />No</button>
                 </div>
               </div>
             ))}
-            {TICKETS.filter(t => t.status === "open").map(t => (
-              <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
+            {tickets.filter(t => t.status === "open").map((t, index) => (
+              <div key={t.id || index} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                 style={{ backgroundColor: "#FEF9C3", border: "1px solid #FDE68A" }}>
                 <AlertCircle size={14} color="#D97706" />
                 <div className="flex-1 min-w-0">
@@ -306,10 +318,10 @@ function Dashboard() {
 /* ═══════════════════════════════════════════════════════════
    SECTION: DONATIONS
 ═══════════════════════════════════════════════════════════ */
-function Donations() {
+function Donations({ data }: { data: any[] }) {
   const [q, setQ] = useState("");
   const [f, setF] = useState<"all" | "completed" | "pending">("all");
-  const rows = DONATIONS.filter(d => (f === "all" || d.status === f) && (q === "" || d.name.toLowerCase().includes(q.toLowerCase())));
+  const rows = data.filter(d => (f === "all" || d.status === f) && (q === "" || d.name.toLowerCase().includes(q.toLowerCase())));
   const total = rows.reduce((s, d) => s + d.amount, 0);
 
   return (
@@ -328,7 +340,7 @@ function Donations() {
       </div>
       <Table
         cols={["ID", "Donor", "Mobile", "Purpose", "Amount", "80G", "Date", "Status", "Actions"]}
-        rows={rows.map(d => [
+        rows={rows.map((d, index) => [
           <span className="font-mono" style={{ color: C.muted }}>{d.id}</span>,
           <div className="flex items-center gap-2"><Avatar name={d.name} /><span style={{ color: C.text }}>{d.name}</span></div>,
           <span style={{ color: C.muted }}>{d.mobile}</span>,
@@ -348,25 +360,19 @@ function Donations() {
 /* ═══════════════════════════════════════════════════════════
    SECTION: VEHICLE PERMITS
 ═══════════════════════════════════════════════════════════ */
-
-const VEHICLE_DATA = PERMISSIONS.filter(p => p.type === "Vehicle");
-
-const VEHICLE_TYPES = ["Car", "Bus", "Tempo", "Bike", "Other"];
-
-function VehiclePermits() {
+function VehiclePermits({ data, onReview }: { data: any[]; onReview: (dbId: number, status: string) => void }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | St>("all");
-  const [ovr, setOvr] = useState<Record<string, St>>({});
   const [typeFilter, setTypeFilter] = useState("all");
 
-  const getStatus = (p: typeof VEHICLE_DATA[0]): St => ovr[p.id] ?? p.status;
+  const VEHICLE_TYPES = ["Car", "Bus", "Tempo", "Bike", "Other"];
 
-  const active = VEHICLE_DATA.filter(p => getStatus(p) === "approved");
-  const pending = VEHICLE_DATA.filter(p => getStatus(p) === "pending");
-  const rejected = VEHICLE_DATA.filter(p => getStatus(p) === "rejected");
+  const active = data.filter(p => p.status === "approved");
+  const pending = data.filter(p => p.status === "pending");
+  const rejected = data.filter(p => p.status === "rejected" || p.status === "denied");
 
-  const visible = VEHICLE_DATA.filter(p =>
-    (filter === "all" || getStatus(p) === filter) &&
+  const visible = data.filter(p =>
+    (filter === "all" || p.status === filter || (filter === "rejected" && p.status === "denied")) &&
     (typeFilter === "all" || p.subtype === typeFilter) &&
     (q === "" || p.name.toLowerCase().includes(q.toLowerCase()) || p.vehicle.toLowerCase().includes(q.toLowerCase()))
   );
@@ -382,7 +388,7 @@ function VehiclePermits() {
       {/* ── Summary cards ────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Total Applications", value: VEHICLE_DATA.length, color: C.darkBlue, sub: "all requests" },
+          { label: "Total Applications", value: data.length, color: C.darkBlue, sub: "all requests" },
           { label: "Approved — Active", value: active.length, color: C.green, sub: "on premises today" },
           { label: "Pending Review", value: pending.length, color: "#D97706", sub: "awaiting decision" },
           { label: "Rejected", value: rejected.length, color: C.red, sub: "not permitted" },
@@ -401,8 +407,8 @@ function VehiclePermits() {
         <p className="text-xs font-bold mb-3" style={{ color: C.text }}>Breakdown by Vehicle Type</p>
         <div className="flex flex-wrap gap-3">
           {VEHICLE_TYPES.map(vt => {
-            const cnt = VEHICLE_DATA.filter(p => p.subtype === vt).length;
-            const act = VEHICLE_DATA.filter(p => p.subtype === vt && getStatus(p) === "approved").length;
+            const cnt = data.filter(p => p.subtype === vt).length;
+            const act = data.filter(p => p.subtype === vt && p.status === "approved").length;
             if (cnt === 0) return null;
             return (
               <button key={vt} onClick={() => setTypeFilter(typeFilter === vt ? "all" : vt)}
@@ -440,8 +446,7 @@ function VehiclePermits() {
       {/* ── Table ───────────────────────────────────────── */}
       <Table
         cols={["ID", "Applicant", "Vehicle No.", "Type", "Date", "Purpose", "Status", "Actions"]}
-        rows={visible.map(p => {
-          const st = getStatus(p);
+        rows={visible.map((p, index) => {
           return [
             <span className="font-mono" style={{ color: C.muted }}>{p.id}</span>,
             <div className="flex items-center gap-2">
@@ -453,18 +458,18 @@ function VehiclePermits() {
               style={{ backgroundColor: `${C.darkBlue}12`, color: C.darkBlue }}>{p.subtype}</span>,
             <span style={{ color: C.muted }}>{p.date}</span>,
             <span style={{ color: C.text }}>{p.purpose}</span>,
-            <Chip status={st} />,
-            st === "pending"
+            <Chip status={p.status === "denied" ? "rejected" : p.status} />,
+            p.status === "pending"
               ? <div className="flex gap-1">
-                <button onClick={() => setOvr(o => ({ ...o, [p.id]: "approved" }))}
+                <button onClick={() => onReview(p.db_id, "approved")}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
                   style={{ backgroundColor: `${C.green}15`, color: C.green }}><Check size={10} />Approve</button>
-                <button onClick={() => setOvr(o => ({ ...o, [p.id]: "rejected" }))}
+                <button onClick={() => onReview(p.db_id, "rejected")}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
                   style={{ backgroundColor: `${C.red}15`, color: C.red }}><X size={10} />Reject</button>
               </div>
-              : <IconBtn col={C.muted} icon={<RefreshCw size={12} />} tip="Reset"
-                onClick={() => setOvr(o => ({ ...o, [p.id]: "pending" }))} />,
+              : <IconBtn col={C.muted} icon={<RefreshCw size={12} />} tip="Reset to Pending"
+                onClick={() => onReview(p.db_id, "pending")} />,
           ];
         })}
       />
@@ -475,15 +480,12 @@ function VehiclePermits() {
 /* ═══════════════════════════════════════════════════════════
    SECTION: PERMISSIONS
 ═══════════════════════════════════════════════════════════ */
-function Permissions() {
+function Permissions({ data, onReview }: { data: any[]; onReview: (dbId: number, status: string) => void }) {
   const [tab, setTab] = useState<"all" | "Bandhara" | "Medical" | "Other">("all");
-  const [ovr, setOvr] = useState<Record<string, St>>({});
 
-  const getStatus = (p: typeof PERMISSIONS[0]): St => ovr[p.id] ?? p.status;
-
-  const activeOf = (type: string) => PERMISSIONS.filter(p => p.type === type && getStatus(p) === "approved").length;
-  const pendingOf = (type: string) => PERMISSIONS.filter(p => p.type === type && getStatus(p) === "pending").length;
-  const totalOf = (type: string) => PERMISSIONS.filter(p => p.type === type).length;
+  const activeOf = (type: string) => data.filter(p => p.type === type && p.status === "approved").length;
+  const pendingOf = (type: string) => data.filter(p => p.type === type && p.status === "pending").length;
+  const totalOf = (type: string) => data.filter(p => p.type === type).length;
 
   const TODAY = "20 Jun 2026";
 
@@ -506,7 +508,7 @@ function Permissions() {
   ];
 
   // Exclude Vehicle — they have their own section
-  const rows = PERMISSIONS.filter(p => p.type !== "Vehicle" && (tab === "all" || p.type === tab));
+  const rows = data.filter(p => p.type !== "Vehicle" && (tab === "all" || p.type === tab));
 
   return (
     <div>
@@ -575,7 +577,7 @@ function Permissions() {
               color: tab === t ? "white" : C.muted,
               border: `1px solid ${tab === t ? C.darkBlue : C.border}`,
             }}>
-            {t}{t !== "all" && ` (${PERMISSIONS.filter(p => p.type === t).length})`}
+            {t}{t !== "all" && ` (${data.filter(p => p.type === t).length})`}
           </button>
         ))}
       </div>
@@ -583,29 +585,29 @@ function Permissions() {
       {/* ── Table ──────────────────────────────────────────── */}
       <Table
         cols={["ID", "Applicant", "Type", "Detail", "Purpose", "Date", "Status", "Actions"]}
-        rows={rows.map(p => {
-          const st = getStatus(p);
+        rows={rows.map((p, index) => {
+          const st = p.status;
           const typeColor = p.type === "Medical" ? C.pink : p.type === "Bandhara" ? "#7C3AED" : C.orange;
           return [
             <span className="font-mono" style={{ color: C.muted }}>{p.id}</span>,
             <span style={{ color: C.text }}>{p.name}</span>,
             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold"
               style={{ backgroundColor: `${typeColor}15`, color: typeColor }}>{p.type}</span>,
-            <span style={{ color: C.muted }}>{p.vehicle !== "—" ? p.vehicle : p.subtype}</span>,
+            <span style={{ color: C.muted }}>{p.subtype}</span>,
             <span style={{ color: C.text }}>{p.purpose}</span>,
             <span style={{ color: C.muted }}>{p.date}</span>,
             <Chip status={st} />,
             st === "pending"
               ? <div className="flex gap-1">
-                <button onClick={() => setOvr(o => ({ ...o, [p.id]: "approved" }))}
+                <button onClick={() => onReview(p.db_id, "approved")}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
                   style={{ backgroundColor: `${C.green}15`, color: C.green }}><Check size={10} />Approve</button>
-                <button onClick={() => setOvr(o => ({ ...o, [p.id]: "rejected" }))}
+                <button onClick={() => onReview(p.db_id, "rejected")}
                   className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold"
                   style={{ backgroundColor: `${C.red}15`, color: C.red }}><X size={10} />Reject</button>
               </div>
-              : <IconBtn col={C.muted} icon={<RefreshCw size={12} />} tip="Reset"
-                onClick={() => setOvr(o => ({ ...o, [p.id]: "pending" }))} />,
+              : <IconBtn col={C.muted} icon={<RefreshCw size={12} />} tip="Reset to Pending"
+                onClick={() => onReview(p.db_id, "pending")} />,
           ];
         })}
       />
@@ -629,11 +631,28 @@ const SLOT_INIT: SlotRow[] = [
   { id: "s4", name: "12:00 PM — Afternoon", color: C.darkBlue, total: 300, onlineLimit: 200, onlineRegistered: 145, offlineEnrolled: 60 },
 ];
 
-function EPass() {
+function EPass({ bookings }: { bookings: any[] }) {
   const [slots, setSlots] = useState<SlotRow[]>(SLOT_INIT);
   const [editing, setEditing] = useState<string | null>(null);
   const [draftLimit, setDraft] = useState("");
   const [saved, setSaved] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Dynamically update onlineRegistered count in slots from real bookings data
+    setSlots(prev => prev.map(s => {
+      let count = 0;
+      if (s.name.includes("Bhasma Aarti")) {
+        count = bookings.filter(b => b.slot.includes("04:00") || b.type.toLowerCase().includes("bhasma")).length;
+      } else if (s.name.includes("Sheegh Darshan")) {
+        count = bookings.filter(b => b.slot.includes("06:00") || b.type.toLowerCase().includes("sheegh")).length;
+      } else if (s.name.includes("General")) {
+        count = bookings.filter(b => b.slot.includes("08:00") || b.type.toLowerCase().includes("general")).length;
+      } else if (s.name.includes("Afternoon")) {
+        count = bookings.filter(b => b.slot.includes("12:00") || b.type.toLowerCase().includes("afternoon")).length;
+      }
+      return { ...s, onlineRegistered: count };
+    }));
+  }, [bookings]);
 
   function startEdit(s: SlotRow) { setEditing(s.id); setDraft(String(s.onlineLimit)); }
 
@@ -668,7 +687,6 @@ function EPass() {
           <p className="text-[11px] mt-1" style={{ color: C.muted }}>at counter / camp</p>
         </div>
         <div className="bg-white rounded-2xl p-4 text-center" style={{ border: `1px solid ${C.border}` }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: C.muted }}>Total Today</p>
           <p className="text-3xl font-extrabold" style={{ color: C.green }}>{totalAll}</p>
           <p className="text-[11px] mt-1" style={{ color: C.muted }}>across all slots</p>
         </div>
@@ -788,7 +806,7 @@ function EPass() {
       <p className="text-sm font-bold mb-3" style={{ color: C.text }}>Individual Passes</p>
       <Table
         cols={["Pass ID", "Registrant", "Mobile", "Date", "Slot", "Type", "Mode", "Status", "Actions"]}
-        rows={EPASSES.map((p, i) => [
+        rows={bookings.map((p, i) => [
           <span className="font-mono" style={{ color: C.muted }}>{p.id}</span>,
           <span style={{ color: C.text }}>{p.devotee}</span>,
           <span style={{ color: C.muted }}>{p.mobile}</span>,
@@ -1256,21 +1274,25 @@ function Announcements() {
 /* ═══════════════════════════════════════════════════════════
    SECTION: SUPPORT
 ═══════════════════════════════════════════════════════════ */
-function Support() {
-  const [sel, setSel] = useState<typeof TICKETS[0] | null>(null);
+function Support({ tickets, onResolve }: { tickets: any[]; onResolve: (dbId: number) => void }) {
+  const [sel, setSel] = useState<any | null>(null);
   const [reply, setReply] = useState("");
-  const [done, setDone] = useState<Set<string>>(new Set());
+  const [done, setDone] = useState<Set<number>>(new Set());
 
-  const resolve = (id: string) => { setDone(p => new Set(p).add(id)); setSel(null); };
+  const resolve = (dbId: number) => {
+    onResolve(dbId);
+    setDone(p => new Set(p).add(dbId));
+    setSel(null);
+  };
 
   return (
     <div>
-      <Head title="Support Tickets" sub={`${TICKETS.filter(t => t.status === "open" && !done.has(t.id)).length} open tickets awaiting response.`} />
+      <Head title="Support Tickets" sub={`${tickets.filter(t => t.status === "open" && !done.has(t.db_id)).length} open tickets awaiting response.`} />
       <div className="grid lg:grid-cols-5 gap-5">
         {/* List */}
         <div className="lg:col-span-2 flex flex-col gap-2">
-          {TICKETS.map(t => {
-            const resolved = done.has(t.id) || t.status === "resolved";
+          {tickets.map(t => {
+            const resolved = done.has(t.db_id) || t.status === "resolved";
             return (
               <button key={t.id} onClick={() => setSel(t)}
                 className="text-left p-4 rounded-xl w-full transition-all"
@@ -1296,11 +1318,11 @@ function Support() {
                   <p className="font-bold text-sm" style={{ color: C.text }}>{sel.subject}</p>
                   <p className="text-xs mt-0.5" style={{ color: C.muted }}>{sel.name} · {sel.email} · {sel.date}</p>
                 </div>
-                <Chip status={done.has(sel.id) ? "resolved" : sel.status} />
+                <Chip status={done.has(sel.db_id) ? "resolved" : sel.status} />
               </div>
               <div className="px-4 py-3.5 rounded-xl mb-5 text-sm leading-relaxed"
                 style={{ backgroundColor: C.cream, border: `1px solid ${C.border}`, color: C.text }}>{sel.message}</div>
-              {!done.has(sel.id) && sel.status !== "resolved" ? (
+              {!done.has(sel.db_id) && sel.status !== "resolved" ? (
                 <>
                   <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: C.muted }}>Reply to Devotee</p>
                   <textarea rows={3} value={reply} onChange={e => setReply(e.target.value)}
@@ -1308,7 +1330,7 @@ function Support() {
                     className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none mb-3"
                     style={{ border: `1.5px solid ${C.border}`, color: C.text, backgroundColor: C.cream }} />
                   <div className="flex gap-2">
-                    <button onClick={() => resolve(sel.id)}
+                    <button onClick={() => resolve(sel.db_id)}
                       className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white"
                       style={{ backgroundColor: C.green }}><CheckCircle2 size={14} />Mark Resolved</button>
                     <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold"
@@ -1336,8 +1358,14 @@ function Support() {
 /* ═══════════════════════════════════════════════════════════
    SECTION: REPORTS
 ═══════════════════════════════════════════════════════════ */
-function Reports() {
-  const byPurpose = DONATIONS.reduce<Record<string, number>>((a, d) => ({ ...a, [d.purpose]: (a[d.purpose] ?? 0) + d.amount }), {});
+function Reports({ donations, vehiclePermits, generalPermissions, bookings }: {
+  donations: any[];
+  vehiclePermits: any[];
+  generalPermissions: any[];
+  bookings: any[];
+}) {
+  const allPermissions = [...vehiclePermits, ...generalPermissions];
+  const byPurpose = donations.reduce<Record<string, number>>((a, d) => ({ ...a, [d.purpose]: (a[d.purpose] ?? 0) + d.amount }), {});
   const sorted = Object.entries(byPurpose).sort((a, b) => b[1] - a[1]);
   const max = sorted[0]?.[1] ?? 1;
 
@@ -1347,9 +1375,9 @@ function Reports() {
         right={<button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white" style={{ backgroundColor: C.darkBlue }}><Download size={13} />Export Report</button>} />
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Total Donations", value: `₹${DONATIONS.reduce((s, d) => s + d.amount, 0).toLocaleString("en-IN")}`, sub: `${DONATIONS.length} transactions`, color: C.green },
-          { label: "Permissions Processed", value: String(PERMISSIONS.length), sub: `${PERMISSIONS.filter(p => p.status === "approved").length} approved · ${PERMISSIONS.filter(p => p.status === "rejected").length} rejected`, color: C.darkBlue },
-          { label: "Total Passes Issued", value: String(EPASSES.length), sub: `${EPASSES.filter(p => p.status === "active").length} active today`, color: C.orange },
+          { label: "Total Donations", value: `₹${donations.reduce((s, d) => s + d.amount, 0).toLocaleString("en-IN")}`, sub: `${donations.length} transactions`, color: C.green },
+          { label: "Permissions Processed", value: String(allPermissions.length), sub: `${allPermissions.filter(p => p.status === "approved").length} approved · ${allPermissions.filter(p => p.status === "rejected" || p.status === "denied").length} rejected`, color: C.darkBlue },
+          { label: "Total Passes Issued", value: String(bookings.length), sub: `${bookings.filter(p => p.status === "active").length} active today`, color: C.orange },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-5 text-center" style={{ border: `1px solid ${C.border}` }}>
             <p className="text-[11px] uppercase tracking-wider mb-2" style={{ color: C.muted }}>{s.label}</p>
@@ -1386,13 +1414,92 @@ export function AdminPage() {
   const [section, setSection] = useState<Section>("dashboard");
   const [collapsed, setCollapsed] = useState(false);
 
-  /* Route guard (disabled for preview/testing)
-  useEffect(() => {
-    if (sessionStorage.getItem("adminAuth") !== "true") {
-      navigate("/login", { replace: true });
+  // Real Database States
+  const [donations, setDonations] = useState<any[]>([]);
+  const [vehiclePermits, setVehiclePermits] = useState<any[]>([]);
+  const [generalPermissions, setGeneralPermissions] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({
+    totalDonations: 0,
+    pendingApprovals: 0,
+    activePasses: 0,
+    openTickets: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  const API_BASE = "http://localhost:8000";
+
+  const fetchData = async () => {
+    try {
+      const [resStats, resDonations, resVehicles, resGeneral, resBookings, resTickets] = await Promise.all([
+        fetch(`${API_BASE}/api/admin/stats`),
+        fetch(`${API_BASE}/api/admin/donations`),
+        fetch(`${API_BASE}/api/admin/vehicle-permits`),
+        fetch(`${API_BASE}/api/admin/general-permissions`),
+        fetch(`${API_BASE}/api/admin/bookings`),
+        fetch(`${API_BASE}/api/admin/support-tickets`),
+      ]);
+
+      if (resStats.ok) setStats(await resStats.json());
+      if (resDonations.ok) setDonations(await resDonations.json());
+      if (resVehicles.ok) setVehiclePermits(await resVehicles.json());
+      if (resGeneral.ok) setGeneralPermissions(await resGeneral.json());
+      if (resBookings.ok) setBookings(await resBookings.json());
+      if (resTickets.ok) setTickets(await resTickets.json());
+    } catch (err) {
+      console.error("Failed to fetch admin dashboard data", err);
+    } finally {
+      setLoading(false);
     }
-  }, [navigate]);
-  */
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleApproveVehiclePermit = async (dbId: number, status: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/vehicle-permits/${dbId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleApproveGeneralPermission = async (dbId: number, status: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/general-permissions/${dbId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleResolveTicket = async (dbId: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/support-tickets/${dbId}/resolve`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   function logout() {
     sessionStorage.removeItem("adminAuth");
@@ -1425,24 +1532,32 @@ export function AdminPage() {
 
         {/* Nav items */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">
-          {NAV.map(item => (
-            <button key={item.id} onClick={() => setSection(item.id)}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 text-left transition-all"
-              style={{
-                backgroundColor: section === item.id ? "rgba(247,148,29,0.18)" : "transparent",
-                color: section === item.id ? C.orange : "rgba(255,255,255,0.55)",
-              }}
-              onMouseEnter={e => { if (section !== item.id) (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.06)"; }}
-              onMouseLeave={e => { if (section !== item.id) (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"; }}
-            >
-              <span className="flex-shrink-0">{item.icon}</span>
-              <span className="text-xs font-semibold flex-1 truncate">{item.label}</span>
-              {item.badge && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: C.orange, color: "white" }}>{item.badge}</span>
-              )}
-            </button>
-          ))}
+          {NAV.map(item => {
+            let badgeCount = item.badge;
+            if (item.id === "donations") badgeCount = donations.filter(d => d.status === "pending").length;
+            if (item.id === "vehicle") badgeCount = vehiclePermits.filter(v => v.status === "pending").length;
+            if (item.id === "permissions") badgeCount = generalPermissions.filter(p => p.status === "pending").length;
+            if (item.id === "support") badgeCount = tickets.filter(t => t.status === "open").length;
+
+            return (
+              <button key={item.id} onClick={() => setSection(item.id)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-0.5 text-left transition-all"
+                style={{
+                  backgroundColor: section === item.id ? "rgba(247,148,29,0.18)" : "transparent",
+                  color: section === item.id ? C.orange : "rgba(255,255,255,0.55)",
+                }}
+                onMouseEnter={e => { if (section !== item.id) (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.06)"; }}
+                onMouseLeave={e => { if (section !== item.id) (e.currentTarget as HTMLElement).style.backgroundColor = "transparent"; }}
+              >
+                <span className="flex-shrink-0">{item.icon}</span>
+                <span className="text-xs font-semibold flex-1 truncate">{item.label}</span>
+                {!!badgeCount && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: C.orange, color: "white" }}>{badgeCount}</span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         {/* Logout */}
@@ -1487,16 +1602,24 @@ export function AdminPage() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto p-5 sm:p-7">
-          {section === "dashboard" && <Dashboard />}
-          {section === "donations" && <Donations />}
-          {section === "vehicle" && <VehiclePermits />}
-          {section === "permissions" && <Permissions />}
-          {section === "epass" && <EPass />}
-          {section === "livestatus" && <LiveStatus />}
-          {section === "gallery" && <Gallery />}
-          {section === "announcements" && <Announcements />}
-          {section === "support" && <Support />}
-          {section === "reports" && <Reports />}
+          {loading ? (
+            <div className="h-full flex items-center justify-center py-20">
+              <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: C.orange, borderTopColor: "transparent" }} />
+            </div>
+          ) : (
+            <>
+              {section === "dashboard" && <Dashboard stats={stats} donations={donations} vehiclePermits={vehiclePermits} tickets={tickets} onApproveVehicle={handleApproveVehiclePermit} />}
+              {section === "donations" && <Donations data={donations} />}
+              {section === "vehicle" && <VehiclePermits data={vehiclePermits} onReview={handleApproveVehiclePermit} />}
+              {section === "permissions" && <Permissions data={generalPermissions} onReview={handleApproveGeneralPermission} />}
+              {section === "epass" && <EPass bookings={bookings} />}
+              {section === "livestatus" && <LiveStatus />}
+              {section === "gallery" && <Gallery />}
+              {section === "announcements" && <Announcements />}
+              {section === "support" && <Support tickets={tickets} onResolve={handleResolveTicket} />}
+              {section === "reports" && <Reports donations={donations} vehiclePermits={vehiclePermits} generalPermissions={generalPermissions} bookings={bookings} />}
+            </>
+          )}
         </main>
       </div>
     </div>

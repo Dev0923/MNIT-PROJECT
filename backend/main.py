@@ -10,6 +10,8 @@ from .routes.donations import router as donations_router
 from .routes.support import router as support_router
 from .routes.vehicles import router as vehicles_router
 from .routes.crowd import router as crowd_router
+from .routes.admin import router as admin_router
+
 
 
 @asynccontextmanager
@@ -42,6 +44,7 @@ app.include_router(donations_router)
 app.include_router(support_router)
 app.include_router(vehicles_router)
 app.include_router(crowd_router)
+app.include_router(admin_router)
 
 
 

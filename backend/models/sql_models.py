@@ -144,3 +144,18 @@ class CrowdDensityLog(Base):
     current_count = Column(Integer, nullable=False)
     status = Column(String(50), nullable=False)  # "Normal", "Moderate", "Dense", "Critical"
     recorded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class GeneralPermission(Base):
+    __tablename__ = "khatu_general_permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    permission_code = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    type = Column(String(50), nullable=False)  # "Bandhara", "Medical", "Other"
+    subtype = Column(String(50), nullable=False)
+    purpose = Column(String(255), nullable=False)
+    date = Column(String(50), nullable=False)
+    status = Column(String(50), default="pending")  # "pending", "approved", "rejected"
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
