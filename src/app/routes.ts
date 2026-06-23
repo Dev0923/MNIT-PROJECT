@@ -20,6 +20,7 @@ import { TempleTimingsPage } from "./pages/TempleTimingsPage";
 import { TempleHistoryPage } from "./pages/TempleHistoryPage";
 import { ImportantDaysPage } from "./pages/ImportantDaysPage";
 import { NewsEventsPage } from "./pages/NewsEventsPage";
+import { AboutKhatuPage } from "./pages/AboutKhatuPage";
 
 export const router = createBrowserRouter([
   { path: "/", Component: HomePage },
@@ -42,6 +43,7 @@ export const router = createBrowserRouter([
   { path: "/services/temple-history", Component: TempleHistoryPage },
   { path: "/services/important-days", Component: ImportantDaysPage },
   { path: "/services/news-events", Component: NewsEventsPage },
+  { path: "/services/about-khatu", Component: AboutKhatuPage },
   { path: "/services/:slug", Component: ServicePage },
   { path: "*", Component: HomePage },
 ]);
