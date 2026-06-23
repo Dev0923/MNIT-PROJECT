@@ -27,17 +27,22 @@ if "sslmode" in db_url or "neon.tech" in db_url:
 
 
 # ── Create async database engine ────────────────────────────────────
-engine = create_async_engine(
-    db_url,
-    echo=False,           # Set to True to debug SQL commands
-    future=True,
-    pool_size=5,
-    max_overflow=10,
-    pool_timeout=30,      # seconds to wait for a pool connection
-    pool_recycle=300,      # recycle connections every 5 min
-    pool_pre_ping=True,    # test connections before handing them out
-    connect_args=connect_args,
-)
+engine_kwargs = {
+    "echo": False,
+    "future": True,
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+    "connect_args": connect_args,
+}
+
+if "sqlite" not in db_url:
+    engine_kwargs.update({
+        "pool_size": 5,
+        "max_overflow": 10,
+        "pool_timeout": 30,
+    })
+
+engine = create_async_engine(db_url, **engine_kwargs)
 
 
 # ── Async session factory ───────────────────────────────────────────

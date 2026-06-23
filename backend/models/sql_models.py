@@ -13,7 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON as JSONB
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
