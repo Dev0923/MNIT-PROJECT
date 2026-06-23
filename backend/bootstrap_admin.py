@@ -1,7 +1,7 @@
 import asyncio
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.future import select
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.models.user import User, UserRole

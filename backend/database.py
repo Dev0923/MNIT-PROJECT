@@ -4,7 +4,7 @@ Async PostgreSQL connection using SQLAlchemy and asyncpg.
 
 import ssl
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from .config import settings
+from config import settings
 
 # ── Prepare database URL and connection args for asyncpg ────────────
 db_url = settings.database_url
@@ -55,7 +55,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def init_db():
     """Initialize database: create tables if they do not exist."""
-    from .models.sql_models import Base
+    from models.sql_models import Base
     try:
         async with engine.begin() as conn:
             # Create all tables defined on the Base metadata

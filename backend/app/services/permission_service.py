@@ -5,7 +5,7 @@ import os
 import aiofiles
 from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 from app.models.vehicle_permission import Permission, Gate
 from app.models.enums import PermissionStatus
 from app.schemas.vehicle_permission import PermissionCreateReq, PermissionStatusUpdateReq

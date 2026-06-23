@@ -2,18 +2,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.exceptions import register_exception_handlers
-from app.api.v1.auth import router as auth_router
-from app.api.v1.vehicles import router as vehicles_router
-from app.api.v1.permissions import router as permissions_router
-from app.api.v1.gates import router as gates_router
-from app.api.v1.scan import router as scan_router
 
-from .database import init_db
-from .routes.bookings import router as bookings_router
-from .routes.donations import router as donations_router
-from .routes.support import router as support_router
-from .routes.crowd import router as crowd_router
+from database import init_db
+from routes.bookings import router as bookings_router
+from routes.donations import router as donations_router
+from routes.support import router as support_router
+from routes.crowd import router as crowd_router
+from routes.vehicles import router as vehicles_router
+from routes.auth import router as auth_router
+from routes.admin import router as admin_router
 
 
 @asynccontextmanager
@@ -40,19 +37,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-register_exception_handlers(app)
-
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(vehicles_router, prefix="/api/v1")
-app.include_router(permissions_router, prefix="/api/v1")
-app.include_router(gates_router, prefix="/api/v1")
-app.include_router(scan_router, prefix="/api/v1")
-
-# Register routers from incoming branch
+# ── Register all routers ────────────────────────────────
+app.include_router(auth_router)
 app.include_router(bookings_router)
 app.include_router(donations_router)
 app.include_router(support_router)
 app.include_router(crowd_router)
+app.include_router(vehicles_router)
+app.include_router(admin_router)
+
 
 @app.get("/health")
 def health() -> dict[str, str]:

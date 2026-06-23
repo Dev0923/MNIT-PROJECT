@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..database import get_db
-from ..models.sql_models import SupportQuery
-from ..models.support import SupportQueryRequest, SupportQueryResponse
+from database import get_db
+from models.sql_models import SupportQuery
+from models.support import SupportQueryRequest, SupportQueryResponse
 
 router = APIRouter(prefix="/api/support", tags=["Support & Help"])
 
