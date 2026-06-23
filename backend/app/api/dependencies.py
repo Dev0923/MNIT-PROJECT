@@ -118,7 +118,7 @@ async def get_current_user(
         raise credentials_exception
 
     # Fetch User
-    from sqlalchemy.future import select
+    from sqlalchemy import select
     stmt = select(User).where(User.id == UUID(user_id_str))
     result = await auth_service.session.execute(stmt)
     user = result.scalar_one_or_none()

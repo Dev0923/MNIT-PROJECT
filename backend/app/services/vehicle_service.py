@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from app.models.vehicle_permission import Vehicle, BlacklistedVehicle
 from app.schemas.vehicle_permission import VehicleCreateReq, VehicleBlacklistReq

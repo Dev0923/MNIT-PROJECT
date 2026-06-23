@@ -8,8 +8,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, delete
 
-from ..config import settings
-from ..models.sql_models import OTP
+from config import settings
+from models.sql_models import OTP
 
 
 async def generate_and_store_otp(db: AsyncSession, identifier: str) -> str:

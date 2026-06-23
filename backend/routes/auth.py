@@ -1,251 +1,219 @@
 """
-Authentication API routes — OTP-based login using PostgreSQL.
+Authentication routes — registration, OTP login, password login.
 """
 
 from datetime import datetime, timezone
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 
-from ..database import get_db
-from ..models.sql_models import User
-from ..models.user import (
-    SendOTPRequest,
-    VerifyOTPRequest,
+from database import get_db
+from models.sql_models import User, OTP
+from models.user import (
     RegisterRequest,
     LoginPasswordRequest,
-    MessageResponse,
     TokenResponse,
     UserResponse,
-    get_identifier_type,
+    MessageResponse,
+    SendOTPRequest,
+    VerifyOTPRequest,
 )
-from ..services.otp_service import generate_and_store_otp, verify_otp
-from ..utils.jwt_handler import create_access_token, get_current_user
-from ..utils.password_handler import hash_password, verify_password
+from utils.jwt_handler import create_access_token, get_current_user
+from utils.password_handler import hash_password, verify_password
+
+import random, string
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
-@router.post("/send-otp", response_model=MessageResponse)
-async def send_otp(request: SendOTPRequest, db: AsyncSession = Depends(get_db)):
-    """
-    Send OTP to the given phone number or email.
-    In mock mode, OTP is always '123456' and printed in server console.
-    """
-    try:
-        otp_code = await generate_and_store_otp(db, request.identifier)
-        id_type = get_identifier_type(request.identifier)
+# ── Helpers ─────────────────────────────────────────────
 
-        return MessageResponse(
-            success=True,
-            message=f"OTP sent to your {id_type}. Please check and enter the 6-digit code.",
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS
-            if "Too many" in str(e)
-            else status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+def _generate_otp(length: int = 6) -> str:
+    return "".join(random.choices(string.digits, k=length))
+
+
+def _format_user(user: User) -> UserResponse:
+    return UserResponse(
+        id=str(user.id),
+        phone=user.phone,
+        email=user.email,
+        name=user.name,
+        created_at=user.created_at,
+        last_login=user.last_login,
+    )
+
+
+# ── OTP Endpoints ────────────────────────────────────────
+
+@router.post("/send-otp", response_model=MessageResponse)
+async def send_otp(
+    request: SendOTPRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Send a 6-digit OTP to the given phone or email.
+    In mock mode the OTP is returned directly in the response message.
+    """
+    from config import settings
+    from datetime import timedelta
+
+    otp_code = _generate_otp()
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.otp_expiry_minutes)
+
+    otp_entry = OTP(
+        identifier=request.identifier,
+        otp_code=otp_code,
+        expires_at=expires_at,
+        verified=False,
+    )
+    db.add(otp_entry)
+    await db.commit()
+
+    if settings.otp_mode == "mock":
+        return MessageResponse(success=True, message=f"OTP sent (mock): {otp_code}")
+
+    # Live mode: integrate SMS/email here
+    return MessageResponse(success=True, message="OTP sent successfully.")
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
-async def verify_otp_endpoint(request: VerifyOTPRequest, db: AsyncSession = Depends(get_db)):
+async def verify_otp(
+    request: VerifyOTPRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """
-    Verify OTP and return JWT token.
-    Only allows logging in existing registered users.
+    Verify OTP and return a JWT token. Creates user account if first time.
     """
-    is_valid = await verify_otp(db, request.identifier, request.otp)
+    from datetime import timedelta
 
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired OTP. Please request a new one.",
-        )
+    result = await db.execute(
+        select(OTP)
+        .where(OTP.identifier == request.identifier, OTP.otp_code == request.otp, OTP.verified == False)
+        .order_by(OTP.created_at.desc())
+    )
+    otp_entry = result.scalar_one_or_none()
 
-    id_type = get_identifier_type(request.identifier)
-    now = datetime.now(timezone.utc)
+    if not otp_entry:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP.")
 
-    # Find existing user
-    if id_type == "email":
-        result = await db.execute(select(User).where(User.email == request.identifier))
+    if datetime.now(timezone.utc) > otp_entry.expires_at:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired.")
+
+    otp_entry.verified = True
+    await db.commit()
+
+    # Find or create user
+    is_email = "@" in request.identifier
+    if is_email:
+        q = select(User).where(User.email == request.identifier)
     else:
-        result = await db.execute(select(User).where(User.phone == request.identifier))
-    user = result.scalar_one_or_none()
+        q = select(User).where(User.phone == request.identifier)
 
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="This phone or email is not registered. Please sign up first.",
+    result_user = await db.execute(q)
+    user = result_user.scalar_one_or_none()
+
+    if not user:
+        user = User(
+            email=request.identifier if is_email else None,
+            phone=None if is_email else request.identifier,
+            created_at=datetime.now(timezone.utc),
         )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
 
-    # Returning user — update last login
-    user.last_login = now
+    user.last_login = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(user)
-    print(f"[AUTH] User logged in via OTP: {request.identifier}")
 
-    # Generate JWT token
     token = create_access_token(str(user.id))
+    return TokenResponse(access_token=token, user=_format_user(user))
 
-    return TokenResponse(
-        access_token=token,
-        user=UserResponse(
-            id=str(user.id),
-            phone=user.phone,
-            email=user.email,
-            name=user.name,
-            created_at=user.created_at,
-            last_login=user.last_login,
-        ),
-    )
 
+# ── Password Endpoints ───────────────────────────────────
 
 @router.post("/register", response_model=TokenResponse)
-async def register_devotee(request: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(
+    request: RegisterRequest,
+    db: AsyncSession = Depends(get_db),
+):
     """
-    Self-register a new devotee. Verifies the OTP sent to their phone first.
+    Devotee self-registration with OTP verification.
     """
-    # 1. Verify OTP first
-    is_valid = await verify_otp(db, request.phone, request.otp)
-    if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired registration OTP. Please request a new one."
-        )
+    # Verify OTP first
+    result_otp = await db.execute(
+        select(OTP)
+        .where(OTP.identifier == request.phone, OTP.otp_code == request.otp, OTP.verified == False)
+        .order_by(OTP.created_at.desc())
+    )
+    otp_entry = result_otp.scalar_one_or_none()
 
-    now = datetime.now(timezone.utc)
+    if not otp_entry:
+        raise HTTPException(status_code=400, detail="Invalid or expired OTP.")
 
-    # 2. Check if phone is already registered
-    result_phone = await db.execute(select(User).where(User.phone == request.phone))
-    existing_phone = result_phone.scalar_one_or_none()
-    if existing_phone:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A devotee with this phone number is already registered."
-        )
+    otp_entry.verified = True
 
-    # 3. Check if email is already registered (if provided)
+    # Check existing user
+    result_existing = await db.execute(select(User).where(User.phone == request.phone))
+    if result_existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Phone number already registered.")
+
     if request.email:
         result_email = await db.execute(select(User).where(User.email == request.email))
-        existing_email = result_email.scalar_one_or_none()
-        if existing_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A devotee with this email address is already registered."
-            )
+        if result_email.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Email already registered.")
 
-    # 4. Hash the password
-    hashed_pwd = hash_password(request.password)
-
-    # 5. Insert new user
-    user_doc = User(
+    user = User(
         name=request.name,
         phone=request.phone,
-        email=request.email if request.email else None,
-        password_hash=hashed_pwd,
+        email=request.email,
+        password_hash=hash_password(request.password),
         receive_updates=request.receive_updates,
-        created_at=now,
-        last_login=now,
+        created_at=datetime.now(timezone.utc),
+        last_login=datetime.now(timezone.utc),
     )
-    db.add(user_doc)
-    await db.commit()
-    await db.refresh(user_doc)
-
-    # 6. Generate access token
-    token = create_access_token(str(user_doc.id))
-
-    return TokenResponse(
-        access_token=token,
-        user=UserResponse(
-            id=str(user_doc.id),
-            phone=user_doc.phone,
-            email=user_doc.email,
-            name=user_doc.name,
-            created_at=user_doc.created_at,
-            last_login=user_doc.last_login,
-        )
-    )
-
-
-@router.post("/login-password", response_model=TokenResponse)
-async def login_password(request: LoginPasswordRequest, db: AsyncSession = Depends(get_db)):
-    """
-    Log in a devotee using their registered phone number or email, and password.
-    """
-    id_type = get_identifier_type(request.identifier)
-    
-    # Find user by phone or email
-    if id_type == "email":
-        result = await db.execute(select(User).where(User.email == request.identifier))
-    else:
-        result = await db.execute(select(User).where(User.phone == request.identifier))
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid phone/email or password."
-        )
-
-    # Check if user has a password set
-    if not user.password_hash:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Your account doesn't have a password set. Please log in with OTP instead."
-        )
-
-    # Verify password hash
-    if not verify_password(request.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid phone/email or password."
-        )
-
-    # Update last login
-    now = datetime.now(timezone.utc)
-    user.last_login = now
+    db.add(user)
     await db.commit()
     await db.refresh(user)
 
     token = create_access_token(str(user.id))
+    return TokenResponse(access_token=token, user=_format_user(user))
 
-    return TokenResponse(
-        access_token=token,
-        user=UserResponse(
-            id=str(user.id),
-            phone=user.phone,
-            email=user.email,
-            name=user.name,
-            created_at=user.created_at,
-            last_login=user.last_login,
-        )
-    )
+
+@router.post("/login", response_model=TokenResponse)
+async def login_with_password(
+    request: LoginPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Login with phone/email + password. Works for both regular users and admins.
+    """
+    is_email = "@" in request.identifier
+    if is_email:
+        q = select(User).where(User.email == request.identifier)
+    else:
+        q = select(User).where(User.phone == request.identifier)
+
+    result = await db.execute(q)
+    user = result.scalar_one_or_none()
+
+    if not user or not user.password_hash:
+        raise HTTPException(status_code=401, detail="Invalid credentials.")
+
+    if not verify_password(request.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials.")
+
+    user.last_login = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(user)
+
+    token = create_access_token(str(user.id))
+    return TokenResponse(access_token=token, user=_format_user(user))
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
-    """
-    Get current authenticated user's profile.
-    Requires valid JWT in Authorization header.
-    """
-    return UserResponse(
-        id=str(current_user.id),
-        phone=current_user.phone,
-        email=current_user.email,
-        name=current_user.name,
-        created_at=current_user.created_at,
-        last_login=current_user.last_login,
-    )
-
-
-@router.post("/logout", response_model=MessageResponse)
-async def logout():
-    """
-    Logout endpoint. Since we use stateless JWT, the client simply
-    discards the token. This endpoint confirms the action.
-    """
-    return MessageResponse(
-        success=True,
-        message="Logged out successfully. Please discard your token.",
-    )
+    """Return the current authenticated user's profile."""
+    return _format_user(current_user)

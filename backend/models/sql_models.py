@@ -28,6 +28,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=True)
     password_hash = Column(String(255), nullable=True)
     receive_updates = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False, nullable=False, server_default="false")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     last_login = Column(DateTime(timezone=True), nullable=True)
 
@@ -92,6 +93,8 @@ class SupportQuery(Base):
     email = Column(String(255), nullable=False)
     subject = Column(String(255), nullable=False)
     message = Column(Text, nullable=False)
+    status = Column(String(50), default="open", nullable=False, server_default="open")
+    admin_reply = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 

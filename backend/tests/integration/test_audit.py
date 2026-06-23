@@ -1,6 +1,6 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.future import select
+from sqlalchemy import select
 from app.models.vehicle_permission import AuditLog
 
 @pytest.mark.asyncio

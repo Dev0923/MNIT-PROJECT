@@ -9,11 +9,11 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 
-from ..config import settings
-from ..database import get_db
-from ..models.sql_models import User
+from config import settings
+from database import get_db
+from models.sql_models import User
 
 # Bearer token security scheme
 security = HTTPBearer()
@@ -78,6 +78,21 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_admin_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    FastAPI dependency — ensures the authenticated user has admin privileges.
+    Raises 403 Forbidden if the user is not an admin.
+    """
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    return current_user
 
 
 async def get_optional_current_user(

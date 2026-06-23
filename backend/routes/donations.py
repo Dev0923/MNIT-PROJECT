@@ -8,12 +8,12 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 
-from ..database import get_db
-from ..models.sql_models import Donation, User
-from ..models.donation import DonationCreateRequest, DonationResponse
-from ..utils.jwt_handler import get_current_user, get_optional_current_user
+from database import get_db
+from models.sql_models import Donation, User
+from models.donation import DonationCreateRequest, DonationResponse
+from utils.jwt_handler import get_current_user, get_optional_current_user
 
 router = APIRouter(prefix="/api/donations", tags=["Donations"])
 

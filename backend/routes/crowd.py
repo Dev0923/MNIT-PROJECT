@@ -8,12 +8,12 @@ from pydantic import BaseModel, Field, field_validator
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 from sqlalchemy import desc
 
-from ..database import get_db
-from ..models.sql_models import CrowdDensityLog, DarshanSlot, User
-from ..utils.jwt_handler import get_current_user
+from database import get_db
+from models.sql_models import CrowdDensityLog, DarshanSlot, User
+from utils.jwt_handler import get_current_user
 
 router = APIRouter(prefix="/api/crowd", tags=["Crowd Control"])
 

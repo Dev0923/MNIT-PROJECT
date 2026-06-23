@@ -3,7 +3,7 @@ import uuid
 from typing import Tuple, Optional
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 import redis.asyncio as redis
 from redis.exceptions import RedisError
 

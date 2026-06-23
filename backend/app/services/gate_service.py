@@ -1,7 +1,7 @@
 from uuid import UUID
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy import select
 from app.models.vehicle_permission import Gate
 from app.core.exceptions import ResourceNotFound
 
