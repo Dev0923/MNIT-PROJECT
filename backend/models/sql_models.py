@@ -144,3 +144,39 @@ class CrowdDensityLog(Base):
     current_count = Column(Integer, nullable=False)
     status = Column(String(50), nullable=False)  # "Normal", "Moderate", "Dense", "Critical"
     recorded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class BhandaraSpot(Base):
+    __tablename__ = "khatu_bhandara_spots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    capacity = Column(Integer, default=5000)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
+    description = Column(Text, nullable=True)
+
+    bookings = relationship("BhandaraBooking", back_populates="spot", cascade="all, delete-orphan")
+
+
+class BhandaraBooking(Base):
+    __tablename__ = "khatu_bhandara_bookings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    spot_id = Column(Integer, ForeignKey("khatu_bhandara_spots.id", ondelete="CASCADE"), nullable=False)
+    start_time = Column(DateTime(timezone=True), nullable=False)
+    end_time = Column(DateTime(timezone=True), nullable=False)
+    duration_hours = Column(Integer, nullable=False)
+    org_name = Column(String(255), nullable=False)
+    org_address = Column(Text, nullable=False)
+    organiser_type = Column(String(50), nullable=False)
+    expected_meals = Column(Integer, nullable=False)
+    location_description = Column(Text, nullable=True)
+    purpose = Column(Text, nullable=False)
+    noc_filename = Column(String(255), nullable=True)
+    id_proof_filename = Column(String(255), nullable=True)
+    status = Column(String(50), default="Pending")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    spot = relationship("BhandaraSpot", back_populates="bookings")
+

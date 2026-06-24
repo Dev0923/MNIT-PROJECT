@@ -14,6 +14,7 @@ from .routes.bookings import router as bookings_router
 from .routes.donations import router as donations_router
 from .routes.support import router as support_router
 from .routes.crowd import router as crowd_router
+from .routes.bandhara import router as bandhara_router
 
 
 @asynccontextmanager
@@ -53,6 +54,7 @@ app.include_router(bookings_router)
 app.include_router(donations_router)
 app.include_router(support_router)
 app.include_router(crowd_router)
+app.include_router(bandhara_router)
 
 @app.get("/health")
 def health() -> dict[str, str]:
