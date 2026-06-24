@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Footer } from "../components/Footer";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
@@ -784,8 +783,7 @@ export function HomePage() {
         </section>
       )}
 
-      <Footer />
-
+      
       <style>{`
         @keyframes marquee {
           from { transform: translateX(0); }
