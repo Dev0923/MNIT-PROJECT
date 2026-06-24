@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import { ArrowLeft, Network, Printer, ChevronDown, ChevronRight } from "lucide-react";
-import { Footer } from "../components/Footer";
 import logoImg from "../../imports/image-21.png";
 
 /* ─────────────────────────────────────────────────────────
@@ -194,8 +193,7 @@ export function SiteMapPage() {
         <AccordionNode node={TREE_DATA} navigate={navigate} />
       </div>
 
-      <Footer />
-
+      
       <style>{`
         @media print {
           body { background: white; }

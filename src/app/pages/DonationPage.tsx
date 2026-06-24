@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { jsPDF } from "jspdf";
 import { useNavigate } from "react-router";
-import { Footer } from "../components/Footer";
 import { useForm } from "react-hook-form";
 import {
   ArrowLeft, Heart, CheckCircle2, IndianRupee,
@@ -554,8 +553,7 @@ export function DonationPage() {
               )}
             </div>
 
-            {/* Footer */}
-            <div className="px-8 pb-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                        <div className="px-8 pb-7 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
               style={{ borderTop: `1px solid ${C.border}`, paddingTop: "1.25rem" }}>
               <p className="text-xs" style={{ color: C.muted }}>
                 All donations are secured via SSL encryption. Official receipts will be sent via email/SMS.
@@ -621,7 +619,6 @@ export function DonationPage() {
         </div>
       </section>
 
-      <Footer />
-    </div>
+          </div>
   );
 }

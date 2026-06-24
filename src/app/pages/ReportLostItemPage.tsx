@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Footer } from "../components/Footer";
 import { motion } from "framer-motion";
 import { lostFoundApi, LostItemData, LostPersonData } from "../services/lostFoundApi";
 import { ArrowLeft, Send, CheckCircle2, Loader2 } from "lucide-react";
@@ -316,7 +315,6 @@ export function ReportLostItemPage() {
           </form>
         </div>
       </main>
-      <Footer />
-    </div>
+          </div>
   );
 }

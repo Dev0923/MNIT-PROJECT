@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Footer } from "../components/Footer";
 import { useNavigate } from "react-router";
 import {
   ArrowLeft, Play, Pause, Volume2, VolumeX, Maximize,
@@ -431,8 +430,7 @@ export function LiveDarshanPage() {
         </aside>
       </main>
 
-      <Footer />
-
+      
       <style>{`
         @keyframes livePulse {
           0%   { box-shadow: 0 0 0 0 rgba(225,29,72,0.7); }

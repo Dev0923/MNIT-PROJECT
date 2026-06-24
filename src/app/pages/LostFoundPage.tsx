@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Footer } from "../components/Footer";
 import { motion } from "framer-motion";
 import { lostFoundApi } from "../services/lostFoundApi";
 import { Search, MapPin, Calendar, HelpCircle, Package, ArrowRight } from "lucide-react";
@@ -134,7 +133,6 @@ export function LostFoundPage() {
         )}
 
       </main>
-      <Footer />
-    </div>
+          </div>
   );
 }

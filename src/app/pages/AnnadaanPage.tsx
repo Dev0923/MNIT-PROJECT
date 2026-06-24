@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Footer } from "../components/Footer";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -1058,8 +1057,7 @@ export function AnnadaanPage() {
         className="fixed inset-0 w-screen h-screen pointer-events-none z-[1000]"
       />
 
-      <Footer />
-
+      
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(8px); }
