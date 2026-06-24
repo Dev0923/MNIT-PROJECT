@@ -19,24 +19,24 @@ export function AboutKhatuPage() {
     <div className="flex flex-col lg:flex-row min-h-screen font-sans bg-white">
       {/* Left Half - Image & Hero Title */}
       <div className="lg:w-1/2 relative lg:sticky lg:top-0 h-[50vh] lg:h-screen">
-        <img 
-          src="/khatu-shyam-temple.png" 
-          alt="Khatu Town" 
-          className="w-full h-full object-cover" 
+        <img
+          src="/khatu-shyam-temple.png"
+          alt="Khatu Town"
+          className="w-full h-full object-cover"
         />
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-[#1F2F8C] via-[#1F2F8C]/40 to-transparent" />
-        
+
         {/* Overlay Content */}
         <div className="absolute bottom-0 left-0 p-8 lg:p-12 text-white w-full">
-          <button 
-            onClick={() => navigate("/")} 
+          <button
+            onClick={() => navigate("/")}
             className="flex items-center gap-2 text-white/90 text-sm font-semibold hover:text-white transition-colors mb-6 lg:mb-10 w-fit backdrop-blur-md bg-black/20 px-5 py-2.5 rounded-full border border-white/10"
           >
             <ArrowLeft size={16} /> Back to Home
           </button>
-          
-          <motion.p 
+
+          <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -44,11 +44,11 @@ export function AboutKhatuPage() {
           >
             The Sacred Town
           </motion.p>
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="text-4xl lg:text-6xl xl:text-7xl font-extrabold leading-tight" 
+            className="text-4xl lg:text-6xl xl:text-7xl font-extrabold leading-tight"
             style={{ fontFamily: "'Georgia', serif", textShadow: "0 4px 12px rgba(0,0,0,0.4)" }}
           >
             About Khatu
@@ -59,9 +59,9 @@ export function AboutKhatuPage() {
       {/* Right Half - Information (Scrollable) */}
       <div className="lg:w-1/2 overflow-y-auto" style={{ backgroundColor: C.cream }}>
         <div className="p-8 lg:p-14 xl:p-20 max-w-3xl mx-auto space-y-14">
-          
+
           {/* About Khatu */}
-          <motion.section 
+          <motion.section
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -81,7 +81,7 @@ export function AboutKhatuPage() {
           </motion.section>
 
           {/* Historical Background */}
-          <motion.section 
+          <motion.section
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -102,9 +102,9 @@ export function AboutKhatuPage() {
               According to local tradition, the village became a major pilgrimage center after King Roop Singh Chauhan installed the sacred head of Barbarika in a temple here.
             </p>
           </motion.section>
-          
+
           {/* Quick Actions */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -122,7 +122,7 @@ export function AboutKhatuPage() {
                 Live Darshan
               </button>
             </div>
-            
+
             <div className="mt-8 flex flex-col sm:flex-row gap-6 justify-between items-center p-6 rounded-2xl bg-white shadow-sm border" style={{ borderColor: `${C.darkBlue}10` }}>
               <div className="text-center sm:text-left">
                 <p className="font-semibold text-sm uppercase tracking-wider mb-2" style={{ color: C.orange }}>Winter Timings</p>
