@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile,
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from ..database import get_db
-from ..models.sql_models import BhandaraSpot, BhandaraBooking
+from database import get_db
+from models.sql_models import BhandaraSpot, BhandaraBooking
 
 router = APIRouter(prefix="/api/bhandara", tags=["Bhandara Bookings"])
 

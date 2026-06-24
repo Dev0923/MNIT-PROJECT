@@ -55,7 +55,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def seed_data():
     """Seed initial mock records if database tables are empty."""
-    from .models.sql_models import Donation, Vehicle, VehiclePermission, SupportQuery, GeneralPermission, Booking
+    from models.sql_models import Donation, Vehicle, VehiclePermission, SupportQuery, GeneralPermission, Booking
     from sqlalchemy.future import select
     from datetime import datetime, timedelta, timezone
 
