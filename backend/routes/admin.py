@@ -15,7 +15,7 @@ from sqlalchemy import select, func, desc, or_
 from database import get_db
 from models.sql_models import (
     User, Booking, Donation, SupportQuery,
-    Vehicle, VehiclePermission,
+    Vehicle, VehiclePermission, GeneralPermission
 )
 from utils.jwt_handler import get_admin_user
 from utils.password_handler import hash_password
@@ -119,6 +119,9 @@ class AdminVehiclePermitResponse(BaseModel):
 
 class PermitStatusUpdate(BaseModel):
     status: str = Field(..., description="'Approved' | 'Denied' | 'Pending'")
+
+class StatusUpdateRequest(BaseModel):
+    status: str
 
 
 class AdminStats(BaseModel):
@@ -487,3 +490,52 @@ async def approve_vehicle_permit(
         allowed_zones=perm.allowed_zones or [],
         created_at=perm.created_at,
     )
+
+# ═══════════════════════════════════════════════════════
+# GENERAL PERMISSIONS
+# ═══════════════════════════════════════════════════════
+
+@router.get("/general-permissions")
+async def get_all_general_permissions(
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all general permissions (Bandhara, Medical, Other).
+    """
+    result = await db.execute(select(GeneralPermission).order_by(desc(GeneralPermission.created_at)))
+    permissions = result.scalars().all()
+    return [
+        {
+            "id": p.permission_code,
+            "db_id": p.id,
+            "name": p.name,
+            "type": p.type,
+            "subtype": p.subtype,
+            "date": p.date,
+            "purpose": p.purpose,
+            "status": p.status.lower()
+        }
+        for p in permissions
+    ]
+
+@router.post("/general-permissions/{perm_id}/status")
+async def update_general_permission_status(
+    perm_id: int,
+    req: StatusUpdateRequest,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Approve or reject a general permission request.
+    """
+    result = await db.execute(
+        select(GeneralPermission).where(GeneralPermission.id == perm_id)
+    )
+    perm = result.scalar_one_or_none()
+    if not perm:
+        raise HTTPException(status_code=404, detail="Permission request not found.")
+    
+    perm.status = req.status.strip().lower()
+    await db.commit()
+    return {"message": "Permission status updated successfully"}
