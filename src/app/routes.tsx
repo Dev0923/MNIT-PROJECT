@@ -29,6 +29,8 @@ import { ReportLostItemPage } from "./pages/ReportLostItemPage";
 import { MedicalCampPermissionPage } from "./pages/MedicalCampPermissionPage";
 import { AccommodationBookingPage } from "./pages/AccommodationBookingPage";
 
+import { AlertListener } from "./components/AlertListener";
+
 function RootLayout() {
   return (
     <div className="flex flex-col min-h-screen">
@@ -37,6 +39,7 @@ function RootLayout() {
         <Outlet />
       </div>
       <Footer />
+      <AlertListener />
     </div>
   );
 }
