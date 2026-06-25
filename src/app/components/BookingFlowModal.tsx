@@ -14,20 +14,21 @@ interface BookingFlowModalProps {
   isOpen: boolean;
   onClose: () => void;
   property: AccommodationProperty;
+  checkInDate: string;
+  checkOutDate: string;
 }
 
 const STEPS = [
-  { id: 1, name: 'Dates', icon: Calendar },
-  { id: 2, name: 'Room', icon: Home },
-  { id: 3, name: 'Guest Info', icon: Users },
-  { id: 4, name: 'Verification', icon: IdCard },
-  { id: 5, name: 'Pilgrimage', icon: ShieldCheck },
-  { id: 6, name: 'Emergency', icon: PhoneCall },
-  { id: 7, name: 'Payment', icon: CreditCard },
-  { id: 8, name: 'Success', icon: CheckCircle },
+  { id: 1, name: 'Room', icon: Home },
+  { id: 2, name: 'Guest Info', icon: Users },
+  { id: 3, name: 'Verification', icon: IdCard },
+  { id: 4, name: 'Pilgrimage', icon: ShieldCheck },
+  { id: 5, name: 'Emergency', icon: PhoneCall },
+  { id: 6, name: 'Payment', icon: CreditCard },
+  { id: 7, name: 'Success', icon: CheckCircle },
 ];
 
-export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onClose, property }) => {
+export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onClose, property, checkInDate, checkOutDate }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
@@ -71,16 +72,9 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
     if (isOpen) {
       setCurrentStep(1);
       setBookingResult(null);
-      // Set tomorrow as default checkin, day after as checkout
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const dayAfter = new Date(today);
-      dayAfter.setDate(dayAfter.getDate() + 2);
-
       setFormData({
-        check_in: tomorrow.toISOString().split('T')[0],
-        check_out: dayAfter.toISOString().split('T')[0],
+        check_in: checkInDate,
+        check_out: checkOutDate,
         adults: 1,
         children: 0,
         seniors: 0,
@@ -91,7 +85,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
         id_type: 'Aadhaar Card',
         id_number: '',
         id_file_name: '',
-        darshan_date: tomorrow.toISOString().split('T')[0],
+        darshan_date: checkInDate,
         transport: 'Train',
         emergency_name: '',
         emergency_relation: 'Spouse',
@@ -126,29 +120,10 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
     const stepErrors: Record<string, string> = {};
     
     if (step === 1) {
-      if (!formData.check_in) stepErrors.check_in = 'Check-in date is required';
-      if (!formData.check_out) stepErrors.check_out = 'Check-out date is required';
-      if (formData.check_in && formData.check_out) {
-        const checkinDate = new Date(formData.check_in);
-        const checkoutDate = new Date(formData.check_out);
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        
-        if (checkinDate < today) {
-          stepErrors.check_in = 'Check-in cannot be in the past';
-        }
-        if (checkoutDate <= checkinDate) {
-          stepErrors.check_out = 'Check-out must be after check-in';
-        }
-      }
-      if (formData.adults < 1) stepErrors.adults = 'At least 1 adult is required';
-    } 
-    
-    else if (step === 2) {
       if (!formData.selectedRoomId) stepErrors.selectedRoomId = 'Please select a room type';
     } 
     
-    else if (step === 3) {
+    else if (step === 2) {
       if (!formData.guest_name.trim()) stepErrors.guest_name = 'Name is required';
       else if (formData.guest_name.length < 3) stepErrors.guest_name = 'Name must be at least 3 characters';
       
@@ -161,7 +136,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
       else if (!phoneRegex.test(formData.guest_phone)) stepErrors.guest_phone = 'Invalid Indian phone number (10 digits)';
     } 
     
-    else if (step === 4) {
+    else if (step === 3) {
       if (!formData.id_number.trim()) stepErrors.id_number = 'ID Number is required';
       else if (formData.id_type === 'Aadhaar Card' && !/^\d{12}$/.test(formData.id_number.replace(/\s/g, ''))) {
         stepErrors.id_number = 'Aadhaar card must be a 12-digit number';
@@ -172,11 +147,11 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
       if (!formData.id_file_name) stepErrors.id_file = 'Please upload a copy of your ID card';
     } 
     
-    else if (step === 5) {
+    else if (step === 4) {
       if (!formData.transport) stepErrors.transport = 'Please select your mode of transport';
     } 
     
-    else if (step === 6) {
+    else if (step === 5) {
       if (!formData.emergency_name.trim()) stepErrors.emergency_name = 'Emergency contact name is required';
       const phoneRegex = /^[6-9]\d{9}$/;
       if (!formData.emergency_phone.trim()) stepErrors.emergency_phone = 'Emergency contact phone is required';
@@ -398,7 +373,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
                     {step.name}
                   </span>
                 </div>
-                {idx < STEPS.length - 1 && (
+                {idx < 7 - 1 && (
                   <div className={`h-0.5 flex-1 min-w-[20px] max-w-[40px] transition-all duration-500 ${isCompleted ? 'bg-emerald-600' : 'bg-slate-200'}`} />
                 )}
               </React.Fragment>
@@ -418,87 +393,6 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
             >
               {/* Step 1: Booking Dates */}
               {currentStep === 1 && (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
-                    <Calendar className="text-amber-800" /> Choose Check-in & Check-out Dates
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Check-in Date</label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          value={formData.check_in}
-                          min={new Date().toISOString().split('T')[0]}
-                          onChange={e => setFormData(prev => ({ ...prev, check_in: e.target.value }))}
-                          className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${errors.check_in ? 'border-red-500 focus:ring-red-300' : 'border-slate-300 focus:ring-amber-500'}`}
-                        />
-                      </div>
-                      {errors.check_in && <p className="text-red-500 text-xs mt-1">{errors.check_in}</p>}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Check-out Date</label>
-                      <input
-                        type="date"
-                        value={formData.check_out}
-                        min={formData.check_in || new Date().toISOString().split('T')[0]}
-                        onChange={e => setFormData(prev => ({ ...prev, check_out: e.target.value }))}
-                        className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 ${errors.check_out ? 'border-red-500 focus:ring-red-300' : 'border-slate-300 focus:ring-amber-500'}`}
-                      />
-                      {errors.check_out && <p className="text-red-500 text-xs mt-1">{errors.check_out}</p>}
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-100">
-                    <h4 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-                      <Users className="text-slate-500 w-4 h-4" /> Guest Count Details
-                    </h4>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Adults (18+)</label>
-                        <select
-                          value={formData.adults}
-                          onChange={e => setFormData(prev => ({ ...prev, adults: parseInt(e.target.value) }))}
-                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        >
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                            <option key={n} value={n}>{n}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Children (Under 18)</label>
-                        <select
-                          value={formData.children}
-                          onChange={e => setFormData(prev => ({ ...prev, children: parseInt(e.target.value) }))}
-                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        >
-                          {[0, 1, 2, 3, 4, 5].map(n => (
-                            <option key={n} value={n}>{n}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Seniors (60+)</label>
-                        <select
-                          value={formData.seniors}
-                          onChange={e => setFormData(prev => ({ ...prev, seniors: parseInt(e.target.value) }))}
-                          className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500"
-                        >
-                          {[0, 1, 2, 3, 4, 5].map(n => (
-                            <option key={n} value={n}>{n}</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Room Selection */}
-              {currentStep === 2 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                     <Home className="text-amber-800" /> Select Accommodation Room Type
@@ -536,7 +430,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
               )}
 
               {/* Step 3: Guest Details */}
-              {currentStep === 3 && (
+              {currentStep === 2 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                     <Users className="text-amber-800" /> Primary Guest Information
@@ -588,7 +482,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
               )}
 
               {/* Step 4: ID Verification */}
-              {currentStep === 4 && (
+              {currentStep === 3 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                     <IdCard className="text-amber-800" /> Identity Verification
@@ -659,7 +553,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
               )}
 
               {/* Step 5: Pilgrimage Details */}
-              {currentStep === 5 && (
+              {currentStep === 4 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                     <ShieldCheck className="text-amber-800" /> Pilgrimage Details
@@ -699,7 +593,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
               )}
 
               {/* Step 6: Emergency Contact */}
-              {currentStep === 6 && (
+              {currentStep === 5 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                     <PhoneCall className="text-amber-800" /> Emergency Contact
@@ -753,7 +647,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
               )}
 
               {/* Step 7: Payment Summary */}
-              {currentStep === 7 && (
+              {currentStep === 6 && (
                 <div className="space-y-6">
                   <h3 className="text-lg font-bold text-slate-800 border-b pb-2 flex items-center gap-2">
                     <FileText className="text-amber-800" /> Booking Payment Summary
@@ -838,7 +732,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
               )}
 
               {/* Step 8: Success screen */}
-              {currentStep === 8 && bookingResult && (
+              {currentStep === 7 && bookingResult && (
                 <div className="text-center py-6 space-y-6">
                   <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
                     <CheckCircle className="w-10 h-10" />
