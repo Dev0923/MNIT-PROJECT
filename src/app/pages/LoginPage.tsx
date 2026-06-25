@@ -8,24 +8,24 @@ import { useNavigate } from "react-router";
 import templeImg from "../../imports/khatu-shyam-ji.jpg";
 
 const C = {
-  orange:    "#F7941D",
-  darkBlue:  "#1F2F8C",
-  green:     "#28A745",
-  darkText:  "#333333",
-  panelBg:   "#FDF5E6",
-  cardBg:    "#FFFFFF",
-  inputBg:   "#FDF5E6",
-  border:    "#E5E5E5",
+  orange: "#F7941D",
+  darkBlue: "#1F2F8C",
+  green: "#28A745",
+  darkText: "#333333",
+  panelBg: "#FDF5E6",
+  cardBg: "#FFFFFF",
+  inputBg: "#FDF5E6",
+  border: "#E5E5E5",
   textMuted: "#888888",
   textLight: "#333333",
-  red:       "#DC2626",
+  red: "#DC2626",
 };
 
 const API_BASE = "http://localhost:8000";
 
-type Portal      = "devotee" | "admin";
-type AuthStep    = "identifier" | "otp" | "success";
-type AdminMethod = "password"| "otp";
+type Portal = "devotee" | "admin";
+type AuthStep = "identifier" | "otp" | "success";
+type AdminMethod = "password" | "otp";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -37,57 +37,57 @@ export function LoginPage() {
     <div className="flex flex-col">
       <div className="flex w-full" style={{ height: "100dvh", overflow: "hidden" }}>
 
-      {/* LEFT: image panel */}
-      <div className="relative w-1/2 h-full flex-shrink-0 overflow-hidden">
-        <img src={templeImg} alt="Khatu Shyam Ji" className="absolute inset-0 w-full h-full object-cover object-top" />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(8,4,20,0.88) 0%, rgba(8,4,20,0.25) 40%, transparent 65%)" }} />
-        <div className="absolute bottom-8 left-8">
-          <h2 style={{ fontFamily: "'Georgia', serif", fontSize: "1.5rem", fontWeight: 700, color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.8)", marginBottom: "4px" }}>
-            खाटू श्याम जी
-          </h2>
-          <p style={{ fontFamily: "'Georgia', serif", fontSize: "0.8rem", fontStyle: "italic", color: "rgba(255,255,255,0.7)", textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
-            Haare Ka Sahara, <span style={{ color: C.orange }}>Baba Shyam Hamara</span>
-          </p>
-        </div>
-      </div>
-
-      {/* RIGHT: form panel */}
-      <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 py-4" style={{ backgroundColor: C.panelBg, overflowY: "auto" }}>
-        <div className="w-full max-w-sm flex flex-col gap-3">
-
-          {/* Back to home */}
-          <button onClick={() => navigate("/")} className="self-start text-xs hover:underline" style={{ color: C.textMuted }}>
-            ← Back to Home
-          </button>
-
-          {/* Header */}
-          <div className="text-center">
-            <p style={{ color: C.orange, fontSize: "0.65rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "4px" }}>
-              श्री खाटू श्री श्याम जी
-            </p>
-            <h1 style={{ color: C.darkBlue, fontSize: "0.95rem", fontWeight: 600, marginBottom: "2px" }}>
-              Welcome to Shyam Baba's
-            </h1>
-            <p style={{ color: C.textMuted, fontSize: "0.72rem" }}>
-              Digital Darshan &amp; Temple Services Platform
+        {/* LEFT: image panel */}
+        <div className="relative w-1/2 h-full flex-shrink-0 overflow-hidden">
+          <img src={templeImg} alt="Khatu Shyam Ji" className="absolute inset-0 w-full h-full object-cover object-top" />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(8,4,20,0.88) 0%, rgba(8,4,20,0.25) 40%, transparent 65%)" }} />
+          <div className="absolute bottom-8 left-8">
+            <h2 style={{ fontFamily: "'Georgia', serif", fontSize: "1.5rem", fontWeight: 700, color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.8)", marginBottom: "4px" }}>
+              खाटू श्याम जी
+            </h2>
+            <p style={{ fontFamily: "'Georgia', serif", fontSize: "0.8rem", fontStyle: "italic", color: "rgba(255,255,255,0.7)", textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
+              Haare Ka Sahara, <span style={{ color: C.orange }}>Baba Shyam Hamara</span>
             </p>
           </div>
+        </div>
 
-          {/* Portal Cards */}
-          <div className="grid grid-cols-2 gap-3">
-            <PortalCard active={portal === "devotee"} onClick={() => setPortal("devotee")} icon={<User size={18} />} title="Devotee Portal" subtitle="Pilgrims & visitors" />
-            <PortalCard active={portal === "admin"} onClick={() => setPortal("admin")} icon={<Shield size={18} />} title="Admin Portal" subtitle="Authorized personnel" showBadge />
-          </div>
+        {/* RIGHT: form panel */}
+        <div className="w-1/2 h-full flex flex-col items-center justify-center px-6 py-4" style={{ backgroundColor: C.panelBg, overflowY: "auto" }}>
+          <div className="w-full max-w-sm flex flex-col gap-3">
 
-          {/* Form Card */}
-          <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: C.cardBg, border: `1px solid ${C.border}` }}>
-            {portal === "admin"
-              ? <AdminForm method={adminMethod} setMethod={setAdminMethod} showPassword={showPassword} setShowPassword={setShowPassword} onLogin={() => { sessionStorage.setItem("adminAuth", "true"); navigate("/admin"); }} />
-              : <DevoteeOTPForm />
-            }
+            {/* Back to home */}
+            <button onClick={() => navigate("/")} className="self-start text-xs hover:underline" style={{ color: C.textMuted }}>
+              ← Back to Home
+            </button>
+
+            {/* Header */}
+            <div className="text-center">
+              <p style={{ color: C.orange, fontSize: "0.65rem", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "4px" }}>
+                श्री खाटू श्री श्याम जी
+              </p>
+              <h1 style={{ color: C.darkBlue, fontSize: "0.95rem", fontWeight: 600, marginBottom: "2px" }}>
+                Welcome to Shyam Baba's
+              </h1>
+              <p style={{ color: C.textMuted, fontSize: "0.72rem" }}>
+                Digital Darshan &amp; Temple Services Platform
+              </p>
+            </div>
+
+            {/* Portal Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <PortalCard active={portal === "devotee"} onClick={() => setPortal("devotee")} icon={<User size={18} />} title="Devotee Portal" subtitle="Pilgrims & visitors" />
+              <PortalCard active={portal === "admin"} onClick={() => setPortal("admin")} icon={<Shield size={18} />} title="Admin Portal" subtitle="Authorized personnel" showBadge />
+            </div>
+
+            {/* Form Card */}
+            <div className="rounded-2xl px-5 py-4" style={{ backgroundColor: C.cardBg, border: `1px solid ${C.border}` }}>
+              {portal === "admin"
+                ? <AdminForm method={adminMethod} setMethod={setAdminMethod} showPassword={showPassword} setShowPassword={setShowPassword} onLogin={() => { sessionStorage.setItem("adminAuth", "true"); navigate("/admin"); }} />
+                : <DevoteeOTPForm />
+              }
+            </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );
@@ -114,7 +114,7 @@ function PortalCard({ active, onClick, icon, title, subtitle, showBadge }: {
 
 function DevoteeOTPForm() {
   const navigate = useNavigate();
-  
+
   // UI states
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [loginMethod, setLoginMethod] = useState<"password" | "otp">("password");
@@ -167,7 +167,7 @@ function DevoteeOTPForm() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
+      const res = await fetch(`${API_BASE}/api/v1/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier: phone.trim() }),
@@ -395,10 +395,10 @@ function DevoteeOTPForm() {
               className="text-xs hover:underline" style={{ color: C.textMuted }}>
               ← Back to Details
             </button>
-            <button type="button" 
-              onClick={(e) => { 
-                setOtp(""); 
-                setError(""); 
+            <button type="button"
+              onClick={(e) => {
+                setOtp("");
+                setError("");
                 if (mode === "signup") {
                   handleSendRegisterOTP(e);
                 } else {
