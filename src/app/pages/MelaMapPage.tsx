@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Footer } from "../components/Footer";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import { DivIcon, type Map as LeafletMap } from "leaflet";
@@ -405,7 +404,6 @@ export function MelaMapPage() {
           </AnimatePresence>
         </div>
       </div>
-      <Footer />
-    </div>
+          </div>
   );
 }

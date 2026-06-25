@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Video, Play, Clock, Eye } from "lucide-react";
-import { Footer } from "../components/Footer";
 import logoImg from "../../imports/image-21.png";
 
 const C = {
@@ -162,8 +161,7 @@ export function GalleryVideosPage() {
         </div>
       </main>
 
-      <Footer />
-    </div>
+          </div>
   );
 }
 

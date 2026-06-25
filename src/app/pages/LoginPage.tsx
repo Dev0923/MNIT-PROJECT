@@ -697,10 +697,12 @@ function AdminForm({ method, setMethod }: {
       if (!data.user.is_admin) {
         throw new Error("Unauthorized: Account does not have admin privileges.");
       }
-
-      localStorage.setItem("token", data.access_token);
+  
+      localStorage.setItem("authToken", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      navigate("/admin");
+      console.log("BEFORE ADMIN NAVIGATION");
+      window.location.href = "/admin"; 
+      console.log("After ADMIN NAVIGATION");
     } catch (err: any) {
       setError(err.message || "Failed to log in.");
     } finally {
@@ -716,7 +718,7 @@ function AdminForm({ method, setMethod }: {
           <strong>Authorized personnel only.</strong> Unauthorized access is strictly prohibited.
         </p>
       </div>
-      
+
       {error && (
         <div className="flex items-center gap-2 rounded-lg px-3 py-2 mb-3"
           style={{ backgroundColor: `${C.red}10`, border: `1px solid ${C.red}30` }}>

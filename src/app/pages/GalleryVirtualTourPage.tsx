@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Rotate3d, ChevronLeft, ChevronRight, MapPin, Info, X } from "lucide-react";
-import { Footer } from "../components/Footer";
 import { AnimatePresence, motion } from "framer-motion";
 import "pannellum/build/pannellum.js";
 import "pannellum/build/pannellum.css";
@@ -298,8 +297,7 @@ export function GalleryVirtualTourPage() {
         </div>
       </div>
 
-      <Footer />
-
+      
       <style>{`
         .hs-dot {
           width: 14px;

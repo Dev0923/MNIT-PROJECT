@@ -1,5 +1,4 @@
 import { useNavigate, useParams } from "react-router";
-import { Footer } from "../components/Footer";
 import { ArrowLeft, Calendar, Clock, IndianRupee, CheckCircle2 } from "lucide-react";
 
 const C = {
@@ -202,7 +201,6 @@ export function ServicePage() {
           </div>
         </div>
       </div>
-      <Footer />
-    </div>
+          </div>
   );
 }

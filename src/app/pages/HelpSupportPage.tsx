@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Footer } from "../components/Footer";
+
 import { useNavigate } from "react-router";
 import {
   ArrowLeft, Search, Phone, Mail, MessageCircle, ShieldAlert,
@@ -718,7 +718,6 @@ export function HelpSupportPage() {
         </div>
       </section>
 
-      <Footer />
     </div>
   );
 }

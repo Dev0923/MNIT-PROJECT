@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Footer } from "../components/Footer";
 import {
   ArrowLeft,
   CalendarDays,
@@ -697,8 +696,7 @@ export function DarshanBookingPage() {
           }
         `}</style>
 
-        <Footer />
-      </div>
+              </div>
     );
   }
 
@@ -1272,7 +1270,6 @@ export function DarshanBookingPage() {
         }
       `}</style>
 
-      <Footer />
-    </div>
+          </div>
   );
 }

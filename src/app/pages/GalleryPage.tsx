@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { ArrowLeft, X, ChevronLeft, ChevronRight, ZoomIn, Images } from "lucide-react";
-import { Footer } from "../components/Footer";
 import logoImg from "../../imports/image-21.png";
 
 const C = {
@@ -250,7 +249,6 @@ export function GalleryPage() {
         </div>
       )}
 
-      <Footer />
-    </div>
+          </div>
   );
 }

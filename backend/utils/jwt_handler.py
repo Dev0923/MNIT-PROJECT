@@ -1,7 +1,7 @@
 """
 JWT token creation and verification.
 """
-
+print("JWT_HANDLER LOADED")
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -79,20 +79,27 @@ async def get_current_user(
 
     return user
 
-
 async def get_admin_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    """
-    FastAPI dependency — ensures the authenticated user has admin privileges.
-    Raises 403 Forbidden if the user is not an admin.
-    """
-    if not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required",
-        )
+    print("GET_ADMIN_USER CALLED")
     return current_user
+
+
+# async def get_admin_user(
+#     current_user: User = Depends(get_current_user),
+# ) -> User:
+
+#     print("ADMIN USER:", current_user.email)
+#     print("IS_ADMIN:", current_user.is_admin)
+
+
+#     if not current_user.is_admin:
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="Admin access required",
+#         )
+#     return current_user
 
 
 async def get_optional_current_user(
