@@ -110,6 +110,7 @@ export function AccommodationBookingPage() {
     if (mapRef.current) {
       mapRef.current.flyTo([property.latitude, property.longitude], 15, { duration: 0.8 });
     }
+    setDetailModalOpen(true);
   };
 
   const openDetails = (property: AccommodationProperty) => {
@@ -302,18 +303,18 @@ export function AccommodationBookingPage() {
                   <div
                     key={property.id}
                     onClick={() => handleCardClick(property)}
-                    className={`bg-white rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden grid grid-cols-1 md:grid-cols-12 ${
+                    className={`bg-white rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden flex flex-col md:flex-row ${
                       isSelected 
                         ? 'border-amber-700 shadow-md ring-1 ring-amber-700/30' 
                         : 'border-slate-100 hover:border-slate-200 hover:shadow-sm'
                     }`}
                   >
                     {/* Thumbnail Image */}
-                    <div className="md:col-span-4 h-48 md:h-full relative bg-slate-100 overflow-hidden">
+                    <div className="w-full md:w-2/5 h-48 md:h-auto relative bg-slate-100 overflow-hidden shrink-0">
                       <img 
                         src={property.image_url} 
                         alt={property.name}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           e.currentTarget.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80";
                         }}
@@ -324,7 +325,7 @@ export function AccommodationBookingPage() {
                     </div>
 
                     {/* Meta Details */}
-                    <div className="md:col-span-8 p-5 flex flex-col justify-between gap-4">
+                    <div className="w-full md:w-3/5 p-5 flex flex-col justify-between gap-4">
                       <div className="space-y-1">
                         <div className="flex justify-between items-start gap-2">
                           <h3 className="font-bold text-slate-800 text-lg leading-snug">{property.name}</h3>
@@ -560,7 +561,15 @@ export function AccommodationBookingPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-end shrink-0">
+            <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-between items-center shrink-0">
+              <a 
+                href={`https://www.google.com/search?q=${encodeURIComponent(selectedProperty.name + " Khatu Shyam")}`} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="text-amber-800 text-xs font-bold hover:underline flex items-center gap-1.5"
+              >
+                View Official Website & Maps
+              </a>
               <button
                 onClick={() => setDetailModalOpen(false)}
                 className="px-5 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-100 transition-colors"
