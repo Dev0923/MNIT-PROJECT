@@ -227,7 +227,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
         origin: { y: 0.6 }
       });
       
-      setCurrentStep(8);
+      setCurrentStep(7);
     } catch (err: any) {
       alert(`Booking Failed: ${err.message}`);
     } finally {
@@ -822,7 +822,7 @@ export const BookingFlowModal: React.FC<BookingFlowModalProps> = ({ isOpen, onCl
         </div>
 
         {/* Modal Footer Controls (Fixed) */}
-        {currentStep < 8 && (
+        {currentStep < 7 && (
           <div className="border-t border-slate-100 px-6 py-4 bg-slate-50 flex justify-between items-center shrink-0">
             <button
               onClick={handleBack}
