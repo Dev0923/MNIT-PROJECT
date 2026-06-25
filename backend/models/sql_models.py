@@ -243,3 +243,13 @@ class GeneralPermission(Base):
     date = Column(String(50), nullable=False)
     status = Column(String(50), default="pending")  # "pending", "approved", "rejected"
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class Announcement(Base):
+    """Admin-managed announcements shown on the devotee Home page."""
+    __tablename__ = "khatu_announcements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    text = Column(Text, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

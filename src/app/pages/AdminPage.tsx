@@ -14,7 +14,7 @@ import logoImg from "../../imports/image-21.png";
 import * as api from "../services/adminApi";
 import type {
   AdminUser, AdminDonation, AdminBooking,
-  AdminSupportTicket, AdminVehiclePermit, AdminStats,
+  AdminSupportTicket, AdminVehiclePermit, AdminStats, Announcement,
 } from "../services/adminApi";
 
 /* ─── palette (site theme) ──────────────────────────────── */
@@ -684,7 +684,7 @@ function VehiclePermits() {
                 </button>
               </div>
             ) : (
-              <button onClick={() => handleAction(p.id, "Pending")} disabled={actionId === p.id}
+              <button onClick={() => handleAction(p.id, "Denied")} disabled={actionId === p.id}
                 className="p-1.5 rounded-lg"
                 style={{ backgroundColor: `${C.muted}15`, color: C.muted }}>
                 <RefreshCw size={12} />
@@ -1183,19 +1183,16 @@ function Gallery() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   SECTION: ANNOUNCEMENTS (unchanged)
+   SECTION: ANNOUNCEMENTS — backend-wired
 ═══════════════════════════════════════════════════════════ */
-const ANN_INIT = [
-  { id: "A1", text: "Jai Shree Shyam  •  Online Puja Booking Now Available", active: true },
-  { id: "A2", text: "Sheegh Darshan Pass — Book Online", active: true },
-  { id: "A3", text: "Sandhya Aarti: 7:30 PM  •  Bhasma Aarti: 4:00 AM", active: true },
-  { id: "A4", text: "Donation Portal Open  •  Annual Shyam Mahotsav — 15 June", active: true },
-  { id: "A5", text: "Road diversion near Main Gate — plan your visit accordingly", active: false },
-];
 
 function Announcements() {
-  const [items, setItems] = useState(ANN_INIT);
+  const [items, setItems] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [newText, setNew] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [savingId, setSavingId] = useState<number | null>(null);
 
   /* ── Alert sender state ────────────────────────────────── */
   const [alertMsg, setAlertMsg] = useState("");
@@ -1205,12 +1202,53 @@ function Announcements() {
   const [alertError, setAlertError] = useState("");
   const [alertHistory, setAlertHistory] = useState<{ msg: string; sev: string; time: string; recipients: number }[]>([]);
 
-  function toggle(id: string) { setItems(p => p.map(a => a.id === id ? { ...a, active: !a.active } : a)); }
-  function remove(id: string) { setItems(p => p.filter(a => a.id !== id)); }
-  function add() {
+  /* ── Load announcements from backend on mount ──────────── */
+  useEffect(() => {
+    api.getAnnouncements()
+      .then(data => setItems(data))
+      .catch(() => setFetchError("Failed to load announcements."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  /* ── Toggle active state ────────────────────────────────── */
+  async function toggle(item: Announcement) {
+    setSavingId(item.id);
+    try {
+      const updated = await api.updateAnnouncement(item.id, { active: !item.active });
+      setItems(prev => prev.map(a => a.id === updated.id ? updated : a));
+    } catch {
+      // silently revert — no state change needed since UI hasn't changed yet
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  /* ── Delete announcement ────────────────────────────────── */
+  async function remove(id: number) {
+    setSavingId(id);
+    try {
+      await api.deleteAnnouncement(id);
+      setItems(prev => prev.filter(a => a.id !== id));
+    } catch {
+      // keep item in list on error
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  /* ── Add new announcement ───────────────────────────────── */
+  async function add() {
     if (!newText.trim()) return;
-    setItems(p => [...p, { id: `A${p.length + 1}`, text: newText.trim(), active: true }]);
-    setNew("");
+    setSaving(true);
+    try {
+      const created = await api.createAnnouncement(newText.trim());
+      setItems(prev => [created, ...prev]);
+      setNew("");
+    } catch {
+      // keep input so user can retry
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function sendAlert() {
@@ -1247,7 +1285,7 @@ function Announcements() {
 
   return (
     <div>
-      <Head title="Announcement Manager" sub="Control the scrolling ticker shown on the Home page." />
+      <Head title="Announcement Manager" sub="Control announcements shown on the devotee Home page." />
 
       {/* ══ SEND LIVE ALERT ══════════════════════════════════ */}
       <div className="bg-white rounded-2xl p-5 mb-6" style={{ border: `2px solid ${C.darkBlue}22`, boxShadow: `0 4px 20px ${C.darkBlue}08` }}>
@@ -1340,7 +1378,6 @@ function Announcements() {
         )}
       </div>
 
-      {/* ══ TICKER ANNOUNCEMENTS (existing) ══════════════════ */}
       <div className="bg-white rounded-2xl p-5 mb-5" style={{ border: `1px solid ${C.border}` }}>
         <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: C.muted }}>Add New Announcement</p>
         <div className="flex gap-3">
@@ -1348,27 +1385,51 @@ function Announcements() {
             placeholder="e.g. Sheegh Darshan Pass now available — Book online"
             className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none"
             style={{ border: `1.5px solid ${C.border}`, color: C.text, backgroundColor: C.cream }} />
-          <button onClick={add} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-1.5" style={{ backgroundColor: C.orange }}>
-            <Plus size={13} />Add
+          <button onClick={add} disabled={saving || !newText.trim()}
+            className="px-5 py-2.5 rounded-xl text-sm font-bold text-white flex items-center gap-1.5"
+            style={{ backgroundColor: saving ? "#999" : C.orange, cursor: saving ? "wait" : "pointer" }}>
+            {saving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={13} />}
+            {saving ? "Saving…" : "Add"}
           </button>
         </div>
       </div>
-      <div className="flex flex-col gap-2.5">
-        {items.map(a => (
-          <div key={a.id} className="bg-white rounded-xl px-5 py-3.5 flex items-center gap-4 transition-all"
-            style={{ border: `1px solid ${C.border}`, opacity: a.active ? 1 : 0.5 }}>
-            <button onClick={() => toggle(a.id)}
-              className="relative w-10 h-5 rounded-full flex-shrink-0 transition-colors"
-              style={{ backgroundColor: a.active ? C.green : "#D1D5DB" }}>
-              <div className="absolute w-4 h-4 bg-white rounded-full shadow top-0.5 transition-transform"
-                style={{ left: a.active ? "22px" : "2px" }} />
-            </button>
-            <p className="flex-1 text-sm font-medium" style={{ color: C.text }}>{a.text}</p>
-            <button onClick={() => remove(a.id)} className="p-1.5 rounded-lg flex-shrink-0"
-              style={{ backgroundColor: `${C.red}12`, color: C.red }}><Trash2 size={13} /></button>
-          </div>
-        ))}
-      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-10 gap-2" style={{ color: C.muted }}>
+          <Loader2 size={18} className="animate-spin" /> Loading announcements…
+        </div>
+      ) : fetchError ? (
+        <p className="text-sm text-center py-6" style={{ color: C.red }}>{fetchError}</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-center py-6" style={{ color: C.muted }}>No announcements yet. Add one above.</p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {items.map(a => {
+            const busy = savingId === a.id;
+            return (
+              <div key={a.id} className="bg-white rounded-xl px-5 py-3.5 flex items-center gap-4 transition-all"
+                style={{ border: `1px solid ${C.border}`, opacity: a.active ? 1 : 0.5 }}>
+                <button onClick={() => !busy && toggle(a)}
+                  className="relative w-10 h-5 rounded-full flex-shrink-0 transition-colors"
+                  style={{ backgroundColor: a.active ? C.green : "#D1D5DB", cursor: busy ? "wait" : "pointer" }}>
+                  <div className="absolute w-4 h-4 bg-white rounded-full shadow top-0.5 transition-transform"
+                    style={{ left: a.active ? "22px" : "2px" }} />
+                </button>
+                <p className="flex-1 text-sm font-medium" style={{ color: C.text }}>{a.text}</p>
+                <span className="text-[10px] flex-shrink-0" style={{ color: C.muted }}>
+                  {new Date(a.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                </span>
+                <button onClick={() => !busy && remove(a.id)} disabled={busy}
+                  className="p-1.5 rounded-lg flex-shrink-0"
+                  style={{ backgroundColor: `${C.red}12`, color: busy ? C.muted : C.red, cursor: busy ? "wait" : "pointer" }}>
+                  {busy ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

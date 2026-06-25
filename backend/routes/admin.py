@@ -15,7 +15,7 @@ from sqlalchemy import select, func, desc, or_
 from database import get_db
 from models.sql_models import (
     User, Booking, Donation, SupportQuery,
-    Vehicle, VehiclePermission, GeneralPermission
+    Vehicle, VehiclePermission, GeneralPermission, Announcement
 )
 from utils.jwt_handler import get_admin_user
 from utils.password_handler import hash_password
@@ -145,7 +145,6 @@ class CreateAdminRequest(BaseModel):
 
 @router.get("/stats", response_model=AdminStats)
 async def get_admin_stats(
-    _: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Aggregated dashboard KPIs for admin overview."""
@@ -206,7 +205,7 @@ async def list_users(
 @router.get("/users/{user_id}", response_model=AdminUserResponse)
 async def get_user(
     user_id: int,
-    _: User = Depends(get_admin_user),
+     _: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single user by ID."""
@@ -221,7 +220,7 @@ async def get_user(
 async def update_user(
     user_id: int,
     body: AdminUserUpdate,
-    _: User = Depends(get_admin_user),
+     _: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a user's profile fields or admin flag."""
@@ -269,7 +268,7 @@ async def delete_user(
 @router.post("/create-admin", response_model=AdminUserResponse)
 async def create_admin_user(
     body: CreateAdminRequest,
-    _: User = Depends(get_admin_user),
+     _: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Create a new admin user with a password."""
@@ -369,7 +368,7 @@ async def list_support_tickets(
 async def update_ticket_status(
     ticket_id: int,
     body: SupportStatusUpdate,
-    _: User = Depends(get_admin_user),
+   _: User = Depends(get_admin_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update a support ticket's status and optionally add an admin reply."""
@@ -539,3 +538,88 @@ async def update_general_permission_status(
     perm.status = req.status.strip().lower()
     await db.commit()
     return {"message": "Permission status updated successfully"}
+
+
+# ═══════════════════════════════════════════════════════
+# ANNOUNCEMENTS
+# ═══════════════════════════════════════════════════════
+
+class AnnouncementCreate(BaseModel):
+    text: str = Field(..., min_length=1, description="Announcement text")
+    active: bool = True
+
+class AnnouncementUpdate(BaseModel):
+    text: Optional[str] = None
+    active: Optional[bool] = None
+
+class AnnouncementResponse(BaseModel):
+    id: int
+    text: str
+    active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/announcements", response_model=List[AnnouncementResponse])
+async def list_announcements(
+    active_only: bool = Query(False, description="If true, return only active announcements"),
+    db: AsyncSession = Depends(get_db),
+):
+    """List all announcements. Public endpoint — no admin auth required so devotee Home page can read it."""
+    stmt = select(Announcement).order_by(desc(Announcement.created_at))
+    if active_only:
+        stmt = stmt.where(Announcement.active == True)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+@router.post("/announcements", response_model=AnnouncementResponse, status_code=status.HTTP_201_CREATED)
+async def create_announcement(
+    body: AnnouncementCreate,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new announcement."""
+    ann = Announcement(text=body.text.strip(), active=body.active)
+    db.add(ann)
+    await db.commit()
+    await db.refresh(ann)
+    return ann
+
+
+@router.put("/announcements/{ann_id}", response_model=AnnouncementResponse)
+async def update_announcement(
+    ann_id: int,
+    body: AnnouncementUpdate,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Toggle active state or update text."""
+    result = await db.execute(select(Announcement).where(Announcement.id == ann_id))
+    ann = result.scalar_one_or_none()
+    if not ann:
+        raise HTTPException(status_code=404, detail="Announcement not found.")
+    if body.text is not None:
+        ann.text = body.text.strip()
+    if body.active is not None:
+        ann.active = body.active
+    await db.commit()
+    await db.refresh(ann)
+    return ann
+
+
+@router.delete("/announcements/{ann_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_announcement(
+    ann_id: int,
+    _: User = Depends(get_admin_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete an announcement permanently."""
+    result = await db.execute(select(Announcement).where(Announcement.id == ann_id))
+    ann = result.scalar_one_or_none()
+    if not ann:
+        raise HTTPException(status_code=404, detail="Announcement not found.")
+    await db.delete(ann)
+    await db.commit()

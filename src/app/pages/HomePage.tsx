@@ -127,6 +127,21 @@ export function HomePage() {
   const [historySubOpen, setHistorySubOpen] = useState(false);
   const [mobileHistorySubOpen, setMobileHistorySubOpen] = useState(false);
 
+  /* ── Live Announcements from Admin portal ─────────────── */
+  interface LiveAnnouncement { id: number; text: string; active: boolean; created_at: string; }
+  const [announcements, setAnnouncements] = useState<LiveAnnouncement[]>([]);
+
+  useEffect(() => {
+    const fetchAnn = () =>
+      fetch("http://localhost:8000/api/admin/announcements?active_only=true")
+        .then(r => r.ok ? r.json() : [])
+        .then((data: LiveAnnouncement[]) => setAnnouncements(data))
+        .catch(() => { /* keep previous */ });
+    fetchAnn();
+    const timer = setInterval(fetchAnn, 60_000); // refresh every 60 s
+    return () => clearInterval(timer);
+  }, []);
+
   const PERMISSION_ITEMS = [
     { label: "Vehicle Permission", icon: <Car size={16} color={C.pink} />, slug: "vehicle-permits" },
     { label: "Bandhara Permission", icon: <Landmark size={16} color={C.darkBlue} />, slug: "bandhara-permission" },
@@ -422,11 +437,18 @@ export function HomePage() {
       {/* ── Marquee Bar ─────────────────────────────────── */}
       <div className="w-full overflow-hidden py-2" style={{ backgroundColor: C.cream, borderBottom: `1px solid ${C.border}` }}>
         <div className="flex whitespace-nowrap animate-marquee">
-          {[t('marquee'), t('marquee')].map((text, i) => (
-            <span key={i} className="inline-block px-6 text-xs tracking-wide font-medium" style={{ color: C.darkBlue }}>
-              &#9733;&#9733; {text}
-            </span>
-          ))}
+          {announcements.length > 0
+            ? [0, 1].map(i => (
+                <span key={i} className="inline-block px-6 text-xs tracking-wide font-medium" style={{ color: C.darkBlue }}>
+                  {announcements.map(a => `★★ ${a.text}`).join("  ·  ")}
+                </span>
+              ))
+            : [t('marquee'), t('marquee')].map((text, i) => (
+                <span key={i} className="inline-block px-6 text-xs tracking-wide font-medium" style={{ color: C.darkBlue }}>
+                  &#9733;&#9733; {text}
+                </span>
+              ))
+          }
         </div>
       </div>
 
@@ -534,23 +556,29 @@ export function HomePage() {
                   {t('info.viewAll')}
                 </button>
               </div>
-              <div>
-                {[
-                  { date: "31 May 2026", text: "Shyam Mahotsav special darshan — extra tokens available from 5 AM." },
-                  { date: "30 May 2026", text: "Parking at Sector 4 & 6 operational. Sector 2 closed for maintenance." },
-                  { date: "28 May 2026", text: "Online prasad booking now open for outstation devotees." },
-                  { date: "25 May 2026", text: "Mangala Aarti timing shifted to 4:30 AM effective June 1 (Summer schedule)." },
-                ].map((n, i) => (
-                  <div key={i} className="flex gap-3 px-5 py-3.5 border-b cursor-pointer transition-colors"
-                    style={{ borderColor: C.border, backgroundColor: i % 2 === 0 ? C.white : C.cream }}>
-                    <span className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: C.orange }} />
-                    <div>
-                      <p className="text-xs font-medium mb-0.5" style={{ color: C.darkText }}>{n.text}</p>
-                      <p className="text-xs" style={{ color: C.muted }}>{n.date}</p>
-                    </div>
+            <div>
+              {(announcements.length > 0
+                ? announcements.map(a => ({
+                    date: new Date(a.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+                    text: a.text,
+                  }))
+                : [
+                    { date: "31 May 2026", text: "Shyam Mahotsav special darshan — extra tokens available from 5 AM." },
+                    { date: "30 May 2026", text: "Parking at Sector 4 & 6 operational. Sector 2 closed for maintenance." },
+                    { date: "28 May 2026", text: "Online prasad booking now open for outstation devotees." },
+                    { date: "25 May 2026", text: "Mangala Aarti timing shifted to 4:30 AM effective June 1 (Summer schedule)." },
+                  ]
+              ).map((n, i) => (
+                <div key={i} className="flex gap-3 px-5 py-3.5 border-b cursor-pointer transition-colors"
+                  style={{ borderColor: C.border, backgroundColor: i % 2 === 0 ? C.white : C.cream }}>
+                  <span className="w-2 h-2 rounded-full mt-1 flex-shrink-0" style={{ backgroundColor: C.orange }} />
+                  <div>
+                    <p className="text-xs font-medium mb-0.5" style={{ color: C.darkText }}>{n.text}</p>
+                    <p className="text-xs" style={{ color: C.muted }}>{n.date}</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
+            </div>
             </div>
 
             {/* Aarti Timings Panel */}

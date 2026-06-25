@@ -286,3 +286,39 @@ export async function approveVehiclePermit(
     body: JSON.stringify({ status: permitStatus }),
   });
 }
+
+// ── Announcements ─────────────────────────────────────
+
+export interface Announcement {
+  id: number;
+  text: string;
+  active: boolean;
+  created_at: string;
+}
+
+/** Fetch all announcements. Pass activeOnly=true to get only active ones. Public endpoint. */
+export async function getAnnouncements(activeOnly = false): Promise<Announcement[]> {
+  const params = activeOnly ? "?active_only=true" : "";
+  return apiFetch<Announcement[]>(`/api/admin/announcements${params}`, {}, false);
+}
+
+export async function createAnnouncement(text: string, active = true): Promise<Announcement> {
+  return apiFetch<Announcement>("/api/admin/announcements", {
+    method: "POST",
+    body: JSON.stringify({ text, active }),
+  });
+}
+
+export async function updateAnnouncement(
+  id: number,
+  patch: { text?: string; active?: boolean }
+): Promise<Announcement> {
+  return apiFetch<Announcement>(`/api/admin/announcements/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(patch),
+  });
+}
+
+export async function deleteAnnouncement(id: number): Promise<void> {
+  return apiFetch<void>(`/api/admin/announcements/${id}`, { method: "DELETE" });
+}
