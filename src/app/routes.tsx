@@ -27,6 +27,7 @@ import { AboutKhatuPage } from "./pages/AboutKhatuPage";
 import { LostFoundPage } from "./pages/LostFoundPage";
 import { ReportLostItemPage } from "./pages/ReportLostItemPage";
 import { MedicalCampPermissionPage } from "./pages/MedicalCampPermissionPage";
+import { AccommodationBookingPage } from "./pages/AccommodationBookingPage";
 
 function RootLayout() {
   return (
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
       { path: "services/about-khatu", Component: AboutKhatuPage },
       { path: "services/lost-and-found", Component: LostFoundPage },
       { path: "services/lost-and-found/report", Component: ReportLostItemPage },
+      { path: "services/accommodation-booking", Component: AccommodationBookingPage },
       { path: "services/:slug", Component: ServicePage },
       { path: "*", Component: HomePage },
     ],

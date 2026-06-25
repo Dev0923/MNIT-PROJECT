@@ -55,7 +55,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def seed_data():
     """Seed initial mock records if database tables are empty."""
-    from models.sql_models import Donation, Vehicle, VehiclePermission, SupportQuery, GeneralPermission, Booking
+    from models.sql_models import Donation, Vehicle, VehiclePermission, SupportQuery, GeneralPermission, Booking, AccommodationProperty, AccommodationRoom
     from sqlalchemy.future import select
     from datetime import datetime, timedelta, timezone
 
@@ -118,6 +118,78 @@ async def seed_data():
                 b2 = Booking(booking_id="KSJ-EP002", booking_type="individual", date=datetime.now(timezone.utc) + timedelta(hours=4), phone="9765432100", city="Delhi", individual_details={"name": "Priya Gupta", "age": 32}, created_at=datetime.now(timezone.utc) - timedelta(days=1))
                 b3 = Booking(booking_id="KSJ-EP003", booking_type="individual", date=datetime.now(timezone.utc) - timedelta(hours=2), phone="9654321000", city="Gurgaon", individual_details={"name": "Suresh Verma", "age": 55}, created_at=datetime.now(timezone.utc) - timedelta(days=1))
                 session.add_all([b1, b2, b3])
+
+            # 6. Accommodations
+            res_accomm = await session.execute(select(AccommodationProperty).limit(1))
+            if not res_accomm.scalar_one_or_none():
+                p1 = AccommodationProperty(
+                    name="Shree Shyam Trust Dharamshala",
+                    type="Dharamshala",
+                    latitude=27.4465,
+                    longitude=75.4005,
+                    distance=0.2,
+                    price_start=150.0,
+                    description="Managed by the Khatu Shyam Ji Temple Board. Provides affordable lodging for families and groups with clean, basic facilities.",
+                    amenities=["Drinking Water", "CCTV", "Locker Room", "Power Backup", "First Aid", "Elevator"],
+                    image_url="https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=800&q=80",
+                    policies=["Check-in: 12:00 PM, Check-out: 11:00 AM", "Valid Gov ID required (Aadhar/Passport)", "Maximum 3 adults per double room", "Alcohol & smoking strictly prohibited"]
+                )
+                p2 = AccommodationProperty(
+                    name="Radhe Shyam Guest House",
+                    type="Guest House",
+                    latitude=27.4502,
+                    longitude=75.3995,
+                    distance=0.5,
+                    price_start=350.0,
+                    description="A clean and peaceful guest house located in a quiet lane close to the temple entrance. Ideal for elderly pilgrims.",
+                    amenities=["Power Backup", "Wifi", "Room Service", "Hot Water", "CCTV"],
+                    image_url="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80",
+                    policies=["Check-in: 12:00 PM, Check-out: 12:00 PM", "Quiet hours after 10 PM", "No pets allowed"]
+                )
+                p3 = AccommodationProperty(
+                    name="Hotel Shyam Palace",
+                    type="Hotel",
+                    latitude=27.4530,
+                    longitude=75.4055,
+                    distance=1.1,
+                    price_start=1200.0,
+                    description="A premium private hotel offering modern rooms, an in-house pure vegetarian restaurant, and large family suites.",
+                    amenities=["AC", "Wifi", "Pure Veg Restaurant", "Room Service", "Parking", "Elevator", "Power Backup"],
+                    image_url="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80",
+                    policies=["Check-in: 2:00 PM, Check-out: 11:00 AM", "Only pure vegetarian food allowed", "Free parking for guests"]
+                )
+                p4 = AccommodationProperty(
+                    name="Shyam Sadan Dharamshala",
+                    type="Dharamshala",
+                    latitude=27.4440,
+                    longitude=75.3955,
+                    distance=0.7,
+                    price_start=200.0,
+                    description="Large community-managed dharamshala offering massive non-AC halls for group pilgrims and simple double rooms.",
+                    amenities=["Drinking Water", "Parking", "Locker Room", "Power Backup"],
+                    image_url="https://images.unsplash.com/photo-1445019980597-93fa8acb246c?auto=format&fit=crop&w=800&q=80",
+                    policies=["Check-in: 24 Hours, Check-out: 24 Hours", "Alcohol prohibited", "Group booking list required"]
+                )
+                session.add_all([p1, p2, p3, p4])
+                await session.flush()
+
+                r1 = AccommodationRoom(property_id=p1.id, type="Dormitory Bed", category="Non-AC", base_price=150.0, total_rooms=50, available_rooms=45)
+                r2 = AccommodationRoom(property_id=p1.id, type="Double Room", category="Non-AC", base_price=400.0, total_rooms=20, available_rooms=18)
+                r3 = AccommodationRoom(property_id=p1.id, type="Double Room", category="AC", base_price=800.0, total_rooms=15, available_rooms=12)
+                r4 = AccommodationRoom(property_id=p1.id, type="Family Suite", category="AC", base_price=1500.0, total_rooms=5, available_rooms=4)
+
+                r5 = AccommodationRoom(property_id=p2.id, type="Single Room", category="Non-AC", base_price=350.0, total_rooms=10, available_rooms=8)
+                r6 = AccommodationRoom(property_id=p2.id, type="Double Room", category="Non-AC", base_price=600.0, total_rooms=15, available_rooms=12)
+                r7 = AccommodationRoom(property_id=p2.id, type="Double Room", category="AC", base_price=1100.0, total_rooms=10, available_rooms=6)
+
+                r8 = AccommodationRoom(property_id=p3.id, type="Standard Room", category="AC", base_price=1200.0, total_rooms=15, available_rooms=10)
+                r9 = AccommodationRoom(property_id=p3.id, type="Deluxe Room", category="AC", base_price=2000.0, total_rooms=10, available_rooms=7)
+                r10 = AccommodationRoom(property_id=p3.id, type="Executive Suite", category="AC", base_price=3500.0, total_rooms=4, available_rooms=3)
+
+                r11 = AccommodationRoom(property_id=p4.id, type="Hall Bed (Dormitory)", category="Non-AC", base_price=200.0, total_rooms=80, available_rooms=75)
+                r12 = AccommodationRoom(property_id=p4.id, type="Double Room", category="Non-AC", base_price=500.0, total_rooms=30, available_rooms=28)
+
+                session.add_all([r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12])
 
             await session.commit()
         except Exception as e:

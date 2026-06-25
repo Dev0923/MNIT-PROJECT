@@ -8,6 +8,7 @@ from utils.password_handler import hash_password
 
 async def bootstrap():
     print("Connecting to database...")
+    # pyrefly: ignore [missing-import]
     from database import init_db
     await init_db()
     

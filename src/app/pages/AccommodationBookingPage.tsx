@@ -1,0 +1,526 @@
+import { useState, useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { DivIcon, type Map as LeafletMap } from 'leaflet';
+import { 
+  Building, MapPin, Search, ShieldCheck, Star, 
+  Wifi, Coffee, Car, Shield, ListFilter, HelpCircle, 
+  Map as MapIcon, Grid, List as ListIcon, X, Check, Compass
+} from 'lucide-react';
+import { accommodationApi, AccommodationProperty, AccommodationRoom } from '../services/accommodationApi';
+import { BookingFlowModal } from '../components/BookingFlowModal';
+import 'leaflet/dist/leaflet.css';
+
+const KHATU_CENTER: [number, number] = [27.448, 75.401];
+
+// Helper to center the map when property selection changes
+function MapFocus({ center, zoom }: { center: [number, number]; zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.flyTo(center, zoom, { duration: 0.8 });
+  }, [center, zoom, map]);
+  return null;
+}
+
+export function AccommodationBookingPage() {
+  const [properties, setProperties] = useState<AccommodationProperty[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<AccommodationProperty | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [bookingModalOpen, setBookingModalOpen] = useState(false);
+  const [selectedRoomToBook, setSelectedRoomToBook] = useState<AccommodationRoom | null>(null);
+
+  // Filters State
+  const [search, setSearch] = useState('');
+  const [propertyType, setPropertyType] = useState('');
+  const [priceMax, setPriceMax] = useState<number>(3500);
+  const [category, setCategory] = useState(''); // 'AC' or 'Non-AC'
+
+  const mapRef = useRef<LeafletMap | null>(null);
+
+  useEffect(() => {
+    fetchProperties();
+  }, [search, propertyType, priceMax, category]);
+
+  const fetchProperties = async () => {
+    setLoading(true);
+    try {
+      const data = await accommodationApi.getProperties({
+        type: propertyType || undefined,
+        price_max: priceMax,
+        category: category || undefined,
+        search: search || undefined,
+      });
+      setProperties(data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Custom marker for Leaflet map based on property type
+  const getMarkerIcon = (property: AccommodationProperty, isSelected: boolean) => {
+    const size = isSelected ? 40 : 32;
+    let bgColor = '#1e293b'; // dark slate
+    let label = 'H'; // hotel
+
+    if (property.type.toLowerCase() === 'dharamshala') {
+      bgColor = '#850000'; // crimson dharamshala
+      label = 'D';
+    } else if (property.type.toLowerCase() === 'guest house') {
+      bgColor = '#d97706'; // amber guest house
+      label = 'G';
+    } else {
+      bgColor = '#1e3a8a'; // blue hotel
+      label = 'H';
+    }
+
+    return new DivIcon({
+      html: `
+        <div style="
+          width: ${size}px;
+          height: ${size}px;
+          border-radius: 50%;
+          background-color: ${bgColor};
+          border: 3px solid #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          font-weight: 800;
+          font-size: ${isSelected ? '14px' : '11px'};
+          box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+          transform: ${isSelected ? 'scale(1.1)' : 'scale(1)'};
+          transition: all 0.2s ease;
+        ">
+          ${label}
+        </div>
+      `,
+      className: '',
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2],
+    });
+  };
+
+  const handleCardClick = (property: AccommodationProperty) => {
+    setSelectedProperty(property);
+    if (mapRef.current) {
+      mapRef.current.flyTo([property.latitude, property.longitude], 15, { duration: 0.8 });
+    }
+  };
+
+  const openDetails = (property: AccommodationProperty) => {
+    setSelectedProperty(property);
+    setDetailModalOpen(true);
+  };
+
+  const handleBookingStart = (property: AccommodationProperty, room?: AccommodationRoom) => {
+    setSelectedProperty(property);
+    if (room) {
+      setSelectedRoomToBook(room);
+    }
+    setDetailModalOpen(false);
+    setBookingModalOpen(true);
+  };
+
+  // Maps Lucide icons to amenity name strings
+  const getAmenityIcon = (name: string) => {
+    switch (name.toLowerCase()) {
+      case 'wifi': return <Wifi className="w-4 h-4" />;
+      case 'parking': return <Car className="w-4 h-4" />;
+      case 'cctv': return <Shield className="w-4 h-4" />;
+      case 'power backup': return <Compass className="w-4 h-4" />;
+      default: return <Coffee className="w-4 h-4" />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#fafaf6] flex flex-col">
+      {/* Hero Banner */}
+      <div className="relative bg-gradient-to-r from-red-800 to-amber-900 text-white py-12 px-6 sm:px-12 md:px-16 text-center shadow-md">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <span className="px-3.5 py-1 bg-amber-400/20 text-amber-300 rounded-full text-xs font-bold tracking-wider uppercase border border-amber-400/30">
+            Shree Khatu Shyam Ji Devsthan Board
+          </span>
+          <h1 className="text-3xl md:text-5xl font-extrabold font-serif tracking-tight text-amber-100">
+            Accommodation & Dharamshala Booking
+          </h1>
+          <p className="text-amber-100/80 text-sm md:text-base max-w-2xl mx-auto leading-relaxed">
+            Reserve certified Trust Dharamshalas, guest houses, and registered hotels near Khatu Shyam Mandir. Official booking with transparent pricing and standard amenities.
+          </p>
+        </div>
+      </div>
+
+      {/* Filter and Content section */}
+      <div className="max-w-7xl mx-auto w-full px-4 md:px-8 py-8 flex-1 flex flex-col gap-6">
+        
+        {/* Search & Filter Bar */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="space-y-1.5 col-span-1 md:col-span-1">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5" /> Search Accommodation
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, amenities..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all text-slate-700"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Building className="w-3.5 h-3.5" /> Property Type
+            </label>
+            <select
+              value={propertyType}
+              onChange={e => setPropertyType(e.target.value)}
+              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all text-slate-700"
+            >
+              <option value="">All Types</option>
+              <option value="Dharamshala">Trust Dharamshala</option>
+              <option value="Guest House">Guest House</option>
+              <option value="Hotel">Hotel</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <ListFilter className="w-3.5 h-3.5" /> Room Category
+            </label>
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all text-slate-700"
+            >
+              <option value="">All Categories</option>
+              <option value="AC">AC Room</option>
+              <option value="Non-AC">Non-AC Room</option>
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-bold text-slate-500 uppercase tracking-wider">Max Price per night</span>
+              <span className="font-bold text-amber-900 font-serif">Rs. {priceMax}</span>
+            </div>
+            <input
+              type="range"
+              min="150"
+              max="4000"
+              step="50"
+              value={priceMax}
+              onChange={e => setPriceMax(parseInt(e.target.value))}
+              className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-800"
+            />
+          </div>
+        </div>
+
+        {/* Layout: Property Grid (Left) + Leaflet Map (Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[500px] flex-1">
+          
+          {/* Property Cards List */}
+          <div className="lg:col-span-7 flex flex-col gap-4 max-h-[750px] overflow-y-auto pr-2">
+            <div className="flex justify-between items-center border-b pb-2">
+              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                Available Accommodations ({properties.length})
+              </h2>
+            </div>
+
+            {loading ? (
+              <div className="flex-1 flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-800" />
+              </div>
+            ) : properties.length === 0 ? (
+              <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-200">
+                <Building className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h3 className="font-bold text-slate-700">No properties match your filters</h3>
+                <p className="text-slate-400 text-xs mt-1">Try relaxing filters or changing your search criteria</p>
+              </div>
+            ) : (
+              properties.map(property => {
+                const isSelected = selectedProperty?.id === property.id;
+                return (
+                  <div
+                    key={property.id}
+                    onClick={() => handleCardClick(property)}
+                    className={`bg-white rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden grid grid-cols-1 md:grid-cols-12 ${
+                      isSelected 
+                        ? 'border-amber-700 shadow-md ring-1 ring-amber-700/30' 
+                        : 'border-slate-100 hover:border-slate-200 hover:shadow-sm'
+                    }`}
+                  >
+                    {/* Thumbnail Image */}
+                    <div className="md:col-span-4 h-48 md:h-full relative bg-slate-100 overflow-hidden">
+                      <img 
+                        src={property.image_url} 
+                        alt={property.name}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.currentTarget.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=400&q=80";
+                        }}
+                      />
+                      <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                        {property.type}
+                      </span>
+                    </div>
+
+                    {/* Meta Details */}
+                    <div className="md:col-span-8 p-5 flex flex-col justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-start gap-2">
+                          <h3 className="font-bold text-slate-800 text-lg leading-snug">{property.name}</h3>
+                          <div className="flex items-center text-amber-500 gap-1 text-xs shrink-0">
+                            <Star className="w-3.5 h-3.5 fill-current" />
+                            <span className="font-bold text-slate-700">4.5</span>
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400" /> {property.distance} km from Temple Entry Gate
+                        </p>
+                      </div>
+
+                      {/* Amenities Row */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {property.amenities.slice(0, 4).map((amenity, idx) => (
+                          <span key={idx} className="bg-slate-50 border border-slate-100 text-slate-600 rounded px-2 py-0.5 text-[10px] font-medium flex items-center gap-1">
+                            {getAmenityIcon(amenity)} {amenity}
+                          </span>
+                        ))}
+                        {property.amenities.length > 4 && (
+                          <span className="text-[10px] text-slate-400 font-semibold px-1 mt-0.5">
+                            +{property.amenities.length - 4} more
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Card Footer: Pricing and Book buttons */}
+                      <div className="flex justify-between items-center border-t border-slate-50 pt-3">
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase tracking-wider">Starting from</p>
+                          <p className="text-lg font-black text-amber-900 font-serif">Rs. {property.price_start}<span className="text-xs text-slate-400 font-sans font-normal">/night</span></p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDetails(property);
+                            }}
+                            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors"
+                          >
+                            View Rooms
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleBookingStart(property);
+                            }}
+                            className="px-4 py-2 bg-amber-800 hover:bg-amber-950 text-white font-bold rounded-xl text-xs transition-all shadow-sm active:scale-95"
+                          >
+                            Book Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Interactive Map (Leaflet) */}
+          <div className="lg:col-span-5 rounded-3xl border border-slate-200 overflow-hidden shadow-sm h-[500px] lg:h-full min-h-[350px] relative bg-slate-100">
+            <div className="absolute top-4 left-4 z-[1000] bg-white/95 backdrop-blur-sm shadow border border-slate-200 px-3 py-1.5 rounded-xl flex items-center gap-2">
+              <Compass className="w-4 h-4 text-amber-800 animate-pulse" />
+              <span className="text-[10px] font-bold text-slate-700 tracking-wide">Click map pins to explore properties</span>
+            </div>
+            
+            <MapContainer
+              center={KHATU_CENTER}
+              zoom={14}
+              className="h-full w-full"
+              whenReady={(event) => {
+                mapRef.current = event.target;
+              }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              
+              {/* Center Temple marker */}
+              <Marker 
+                position={KHATU_CENTER}
+                icon={new DivIcon({
+                  html: `
+                    <div style="
+                      width: 24px;
+                      height: 24px;
+                      border-radius: 50%;
+                      background-color: #ef4444;
+                      border: 3px solid #ffffff;
+                      box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+                    "></div>
+                  `,
+                  className: '',
+                  iconSize: [24, 24],
+                })}
+              >
+                <Popup>
+                  <p className="font-bold text-xs">Shree Khatu Shyam Ji Mandir (Center)</p>
+                </Popup>
+              </Marker>
+
+              {selectedProperty && (
+                <MapFocus center={[selectedProperty.latitude, selectedProperty.longitude]} zoom={15} />
+              )}
+
+              {properties.map(property => (
+                <Marker
+                  key={property.id}
+                  position={[property.latitude, property.longitude]}
+                  icon={getMarkerIcon(property, selectedProperty?.id === property.id)}
+                  eventHandlers={{
+                    click: () => {
+                      setSelectedProperty(property);
+                    }
+                  }}
+                >
+                  <Popup>
+                    <div className="space-y-1.5 p-1 min-w-[150px]">
+                      <h4 className="font-bold text-xs text-slate-800 leading-tight">{property.name}</h4>
+                      <p className="text-[10px] text-slate-500 font-semibold">{property.type} &bull; {property.distance} km from Mandir</p>
+                      <p className="text-xs font-black text-amber-900 font-serif border-t pt-1 mt-1">Starting Rs. {property.price_start}</p>
+                      <button
+                        onClick={() => openDetails(property)}
+                        className="w-full py-1 mt-1 bg-amber-800 hover:bg-amber-900 text-white rounded text-[10px] font-bold transition-colors"
+                      >
+                        View & Book
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Property Details Modal */}
+      {detailModalOpen && selectedProperty && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-amber-100 max-h-[85vh] flex flex-col">
+            
+            {/* Modal Header */}
+            <div className="relative bg-slate-900 text-white p-6 shrink-0 flex justify-between items-start">
+              <div className="space-y-1 pr-6">
+                <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 rounded text-[9px] font-bold uppercase tracking-wider border border-amber-500/30">
+                  {selectedProperty.type}
+                </span>
+                <h3 className="text-xl font-bold font-serif text-amber-100">{selectedProperty.name}</h3>
+                <p className="text-xs text-slate-400 flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {selectedProperty.distance} km from temple entry gate</p>
+              </div>
+              <button 
+                onClick={() => setDetailModalOpen(false)}
+                className="text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-full p-2 text-sm transition-colors focus:outline-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Content (Scrollable) */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1">
+              {/* Description */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">About this lodging</h4>
+                <p className="text-slate-600 text-sm leading-relaxed">{selectedProperty.description}</p>
+              </div>
+
+              {/* Amenities */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Available Amenities</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {selectedProperty.amenities.map((amenity, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-600 p-2.5 bg-slate-50 border border-slate-100 rounded-lg">
+                      <span className="text-amber-800 shrink-0">{getAmenityIcon(amenity)}</span>
+                      <span className="font-semibold text-slate-700">{amenity}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Room Availability Matrix */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Room Availability & Tariff</h4>
+                <div className="border border-slate-100 rounded-2xl overflow-hidden divide-y divide-slate-100">
+                  {selectedProperty.rooms.map(room => (
+                    <div key={room.id} className="p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 hover:bg-slate-50/40 transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-slate-800">{room.type}</span>
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase ${room.category === 'AC' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>
+                            {room.category}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-semibold">Available Units: {room.available_rooms}</p>
+                      </div>
+                      <div className="flex justify-between sm:justify-end items-center gap-4">
+                        <div className="sm:text-right">
+                          <p className="text-xs text-slate-400">Price per night</p>
+                          <p className="text-base font-extrabold text-amber-900 font-serif">Rs. {room.base_price}</p>
+                        </div>
+                        <button
+                          onClick={() => handleBookingStart(selectedProperty, room)}
+                          disabled={room.available_rooms <= 0}
+                          className="px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-40 disabled:pointer-events-none active:scale-95 shadow-sm"
+                        >
+                          {room.available_rooms > 0 ? 'Book Room' : 'Sold Out'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Policies */}
+              <div className="space-y-3 bg-amber-50/20 border border-amber-100/40 p-5 rounded-2xl">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 text-amber-800">
+                  <ShieldCheck className="w-4 h-4" /> Board Boarding Rules & Policies
+                </h4>
+                <ul className="space-y-1.5">
+                  {selectedProperty.policies.map((policy, idx) => (
+                    <li key={idx} className="text-xs text-slate-600 flex items-start gap-2">
+                      <span className="text-emerald-600 font-bold mt-0.5">✓</span>
+                      <span>{policy}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-slate-100 p-4 bg-slate-50 flex justify-end shrink-0">
+              <button
+                onClick={() => setDetailModalOpen(false)}
+                className="px-5 py-2.5 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-100 transition-colors"
+              >
+                Close details
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking flow wizard modal */}
+      {selectedProperty && (
+        <BookingFlowModal
+          isOpen={bookingModalOpen}
+          onClose={() => setBookingModalOpen(false)}
+          property={selectedProperty}
+        />
+      )}
+    </div>
+  );
+}
