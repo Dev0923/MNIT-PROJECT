@@ -6,9 +6,10 @@ import {
   Car, ChevronDown, Landmark, Stethoscope, ClipboardList,
   HandCoins, UtensilsCrossed, Building2, ScrollText,
   ChevronRight, Info as InfoIcon, Clock, Star as StarIcon, Newspaper,
-  BookOpen, MapPinned, Images, Video, Rotate3d, Network, ShieldAlert
+  BookOpen, MapPinned, Images, Video, Rotate3d, Network, ShieldAlert, User
 } from "lucide-react";
 import logoImg from "../../imports/image-21.png";
+import { ProfilePanel } from "./ProfilePanel";
 
 const C = {
   orange: "#F7941D",
@@ -56,7 +57,16 @@ export function Header() {
     fetchWeather();
   }, []);
 
-  const isLoggedIn = !!localStorage.getItem("token");
+  const isLoggedIn = !!(localStorage.getItem("token") || localStorage.getItem("authToken"));
+  const [profilePanelOpen, setProfilePanelOpen] = useState(false);
+
+  // Read user name for avatar initials
+  const storedUser = (() => {
+    try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+  })();
+  const userInitials = storedUser?.name
+    ? storedUser.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)
+    : (storedUser?.phone ? storedUser.phone.slice(-2) : "U");
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNav, setActiveNav] = useState(
@@ -288,10 +298,21 @@ export function Header() {
                 {t('header.login')}
               </button>
             ) : (
-              <button onClick={() => { localStorage.clear(); window.location.reload(); }}
-                className="px-4 py-1.5 rounded-md text-xs font-bold text-white transition-all hover:opacity-90"
-                style={{ backgroundColor: C.muted }}>
-                Logout
+              <button
+                onClick={() => setProfilePanelOpen(true)}
+                title="View Profile"
+                className="flex items-center gap-2 px-2 py-1 rounded-xl transition-all hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: C.darkBlue }}
+              >
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold"
+                  style={{ background: `linear-gradient(135deg, ${C.orange}, #fbbf24)`, color: C.white }}
+                >
+                  {userInitials}
+                </div>
+                <span className="text-xs font-semibold max-w-[80px] truncate" style={{ color: C.white }}>
+                  {storedUser?.name?.split(" ")[0] || "Profile"}
+                </span>
               </button>
             )}
           </div>
@@ -380,7 +401,13 @@ export function Header() {
               {!isLoggedIn ? (
                 <button onClick={() => { navigate("/login"); setMobileMenuOpen(false); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.green }}>{t('header.login')}</button>
               ) : (
-                <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="flex-1 py-2 rounded-md text-xs font-bold text-white" style={{ backgroundColor: C.muted }}>Logout</button>
+                <button
+                  onClick={() => { setProfilePanelOpen(true); setMobileMenuOpen(false); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold text-white"
+                  style={{ backgroundColor: C.darkBlue }}
+                >
+                  <User size={13} /> Profile
+                </button>
               )}
             </div>
           </div>
@@ -403,6 +430,9 @@ export function Header() {
               ))}
         </div>
       </div>
+
+      {/* Profile Panel */}
+      <ProfilePanel isOpen={profilePanelOpen} onClose={() => setProfilePanelOpen(false)} />
 
       {/* SOS Modal */}
       {isSOSOpen && (

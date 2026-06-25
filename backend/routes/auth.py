@@ -218,3 +218,141 @@ async def login_with_password(
 async def get_me(current_user: User = Depends(get_current_user)):
     """Return the current authenticated user's profile."""
     return _format_user(current_user)
+
+
+@router.get("/profile")
+async def get_profile(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return the current user's personal info plus all their activity history:
+    darshan bookings, donations, accommodation bookings, and vehicle permits.
+    """
+    from models.sql_models import Booking, Donation, AccommodationBooking, Vehicle, VehiclePermission, AccommodationProperty
+    from sqlalchemy.orm import selectinload
+
+    # Darshan bookings
+    res_bookings = await db.execute(
+        select(Booking)
+        .where(Booking.user_id == current_user.id)
+        .order_by(Booking.date.desc())
+    )
+    bookings = res_bookings.scalars().all()
+
+    # Donations
+    res_donations = await db.execute(
+        select(Donation)
+        .where(Donation.user_id == current_user.id)
+        .order_by(Donation.created_at.desc())
+    )
+    donations = res_donations.scalars().all()
+
+    # Accommodation bookings
+    res_acc = await db.execute(
+        select(AccommodationBooking)
+        .where(AccommodationBooking.user_id == current_user.id)
+        .order_by(AccommodationBooking.created_at.desc())
+    )
+    acc_bookings = res_acc.scalars().all()
+
+    # Property names for accommodation bookings
+    property_ids = list({b.property_id for b in acc_bookings})
+    property_map = {}
+    if property_ids:
+        res_props = await db.execute(
+            select(AccommodationProperty).where(AccommodationProperty.id.in_(property_ids))
+        )
+        for prop in res_props.scalars().all():
+            property_map[prop.id] = prop.name
+
+    # Vehicles + permits
+    res_vehicles = await db.execute(
+        select(Vehicle)
+        .where(Vehicle.owner_id == current_user.id)
+    )
+    vehicles = res_vehicles.scalars().all()
+
+    vehicle_data = []
+    for v in vehicles:
+        res_permits = await db.execute(
+            select(VehiclePermission)
+            .where(VehiclePermission.vehicle_id == v.id)
+            .order_by(VehiclePermission.created_at.desc())
+        )
+        permits = res_permits.scalars().all()
+        vehicle_data.append({
+            "id": v.id,
+            "plate_number": v.plate_number,
+            "vehicle_type": v.vehicle_type,
+            "model": v.model,
+            "created_at": v.created_at.isoformat() if v.created_at else None,
+            "permits": [
+                {
+                    "id": p.id,
+                    "permit_type": p.permit_type,
+                    "status": p.status,
+                    "valid_from": p.valid_from.isoformat() if p.valid_from else None,
+                    "valid_to": p.valid_to.isoformat() if p.valid_to else None,
+                    "allowed_zones": p.allowed_zones,
+                }
+                for p in permits
+            ],
+        })
+
+    return {
+        "user": {
+            "id": current_user.id,
+            "name": current_user.name,
+            "phone": current_user.phone,
+            "email": current_user.email,
+            "is_admin": current_user.is_admin,
+            "receive_updates": current_user.receive_updates,
+            "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+            "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
+        },
+        "bookings": [
+            {
+                "id": b.id,
+                "booking_id": b.booking_id,
+                "booking_type": b.booking_type,
+                "date": b.date.isoformat() if b.date else None,
+                "phone": b.phone,
+                "city": b.city,
+                "individual_details": b.individual_details,
+                "group_details": b.group_details,
+                "created_at": b.created_at.isoformat() if b.created_at else None,
+            }
+            for b in bookings
+        ],
+        "donations": [
+            {
+                "id": d.id,
+                "donation_id": d.donation_id,
+                "fullName": d.fullName,
+                "purpose": d.purpose,
+                "amount": d.amount,
+                "want80G": d.want80G,
+                "created_at": d.created_at.isoformat() if d.created_at else None,
+            }
+            for d in donations
+        ],
+        "accommodation_bookings": [
+            {
+                "id": ab.id,
+                "booking_id": ab.booking_id,
+                "property_id": ab.property_id,
+                "property_name": property_map.get(ab.property_id, "Unknown Property"),
+                "room_type": ab.room_type,
+                "check_in": ab.check_in.isoformat() if ab.check_in else None,
+                "check_out": ab.check_out.isoformat() if ab.check_out else None,
+                "adults": ab.adults,
+                "children": ab.children,
+                "total_amount": ab.total_amount,
+                "status": ab.status,
+                "created_at": ab.created_at.isoformat() if ab.created_at else None,
+            }
+            for ab in acc_bookings
+        ],
+        "vehicles": vehicle_data,
+    }
