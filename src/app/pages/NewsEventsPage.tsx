@@ -27,14 +27,16 @@ export function NewsEventsPage() {
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t lg:bg-gradient-to-r from-[#1F2F8C] via-[#1F2F8C]/40 to-transparent" />
         
+        {/* Back to Home Button */}
+        <button 
+          onClick={() => navigate("/")} 
+          className="absolute top-6 left-6 lg:top-8 lg:left-8 z-10 flex items-center gap-2 text-black text-sm font-semibold hover:bg-neutral-100 transition-colors w-fit bg-white px-5 py-2.5 rounded-full shadow-md border border-neutral-200"
+        >
+          <ArrowLeft size={16} /> Back to Home
+        </button>
+
         {/* Overlay Content */}
         <div className="absolute bottom-0 left-0 p-8 lg:p-12 text-white w-full">
-          <button 
-            onClick={() => navigate("/")} 
-            className="flex items-center gap-2 text-white/90 text-sm font-semibold hover:text-white transition-colors mb-6 lg:mb-10 w-fit backdrop-blur-md bg-black/20 px-5 py-2.5 rounded-full border border-white/10"
-          >
-            <ArrowLeft size={16} /> Back to Home
-          </button>
           
           <motion.p 
             initial={{ opacity: 0, y: 10 }}

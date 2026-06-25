@@ -498,7 +498,7 @@ export function HomePage() {
             <p className="text-sm leading-relaxed mb-7" style={{ color: C.muted }}>
               {t('about.p2')}
             </p>
-            <button className="px-7 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
+            <button onClick={() => navigate("/services/about-temple")} className="px-7 py-2.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
               style={{ backgroundColor: C.darkBlue, boxShadow: `0 4px 14px rgba(31,47,140,0.30)` }}>
               {t('about.btn')}
             </button>
