@@ -43,9 +43,74 @@ export function HomePage() {
   const lang = i18n.language;
   const setLang = (l: "en" | "hi") => i18n.changeLanguage(l);
 
+  const [isSOSOpen, setIsSOSOpen] = useState(false);
+
   // Live Weather Logic
+  const [weatherTemp, setWeatherTemp] = useState<string>("24°C");
   const [weatherCode, setWeatherCode] = useState<number>(800); // OpenWeather code for Clear Sky
-  
+
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || "8d2de98e089f1c28e1a22fc19a24ef04";
+        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=27.3667&lon=75.4000&units=metric&appid=${apiKey}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.main && data.weather && data.weather[0]) {
+            setWeatherTemp(`${Math.round(data.main.temp)}°C`);
+            setWeatherCode(data.weather[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching weather:", err);
+      }
+    }
+    fetchWeather();
+  }, []);
+
+  const weatherInfo = useMemo(() => {
+    let descEn = "Clear sky";
+    let descHi = "साफ आसमान";
+    let iconName = "sun";
+
+    const code = weatherCode;
+    // Map OpenWeather weather codes
+    if (code === 800) {
+      descEn = "Clear sky";
+      descHi = "साफ आसमान";
+      iconName = "sun";
+    } else if (code === 801) {
+      descEn = "Partly cloudy";
+      descHi = "आंशिक रूप से बादल";
+      iconName = "cloud-sun";
+    } else if (code >= 802 && code <= 804) {
+      descEn = "Cloudy";
+      descHi = "बादल";
+      iconName = "cloud";
+    } else if (code >= 700 && code < 800) {
+      descEn = "Foggy / Mist";
+      descHi = "कोहरा / धुंध";
+      iconName = "cloud";
+    } else if ((code >= 300 && code < 400) || (code >= 500 && code < 600)) {
+      descEn = "Rainy";
+      descHi = "बारिश";
+      iconName = "cloud-rain";
+    } else if (code >= 200 && code < 300) {
+      descEn = "Thunderstorm";
+      descHi = "आंधी-तूफान";
+      iconName = "cloud-lightning";
+    } else {
+      descEn = "Cloudy";
+      descHi = "बादल";
+      iconName = "cloud";
+    }
+
+    return {
+      desc: lang === "hi" ? `${descHi}, खाटू` : `${descEn}, Khatu`,
+      iconName
+    };
+  }, [weatherCode, lang]);
+
   const isLoggedIn = !!localStorage.getItem("token");
 
   const [announcements, setAnnouncements] = useState<LiveAnnouncement[]>([]);
