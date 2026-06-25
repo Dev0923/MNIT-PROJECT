@@ -26,26 +26,24 @@ type GalleryItem = {
 };
 
 const ITEMS: GalleryItem[] = [
-  { id: 1,  url: "https://images.unsplash.com/photo-1768731764777-de5860f41126?auto=format&fit=crop&w=900&q=80", title: "Sacred Shikhara", category: "Temple", photographer: "Anand Mahajan" },
-  { id: 2,  url: "https://images.unsplash.com/photo-1634351356743-05de62a4b80b?auto=format&fit=crop&w=900&q=80", title: "Devotees in Sarees", category: "Devotees", photographer: "Gene Brutty" },
-  { id: 3,  url: "https://images.unsplash.com/photo-1605302977545-3a09913be1dd?auto=format&fit=crop&w=900&q=80", title: "Sacred Diya", category: "Aarti & Rituals", photographer: "Jyoti Singh" },
-  { id: 4,  url: "https://images.unsplash.com/photo-1767278608250-e87182850006?auto=format&fit=crop&w=900&q=80", title: "Festival by the River", category: "Festivals", photographer: "Rohit Dey" },
-  { id: 5,  url: "https://images.unsplash.com/photo-1754055518753-d051b8c3309a?auto=format&fit=crop&w=900&q=80", title: "Ancient Architecture", category: "Temple", photographer: "Rohan Mathur" },
-  { id: 6,  url: "https://images.unsplash.com/photo-1616787671779-eed71117a65e?auto=format&fit=crop&w=900&q=80", title: "Hands Raised in Prayer", category: "Devotees", photographer: "Ravi Sharma" },
-  { id: 7,  url: "https://images.unsplash.com/photo-1636227597176-c554bcbee419?auto=format&fit=crop&w=900&q=80", title: "Evening Diyas", category: "Aarti & Rituals", photographer: "Suchandra Roy" },
-  { id: 8,  url: "https://images.unsplash.com/photo-1695395550316-8995ae9d35ff?auto=format&fit=crop&w=900&q=80", title: "Temple Spires", category: "Temple", photographer: "Jayanth Muppaneni" },
-  { id: 9,  url: "https://images.unsplash.com/photo-1617184003107-0df15fea4903?auto=format&fit=crop&w=900&q=80", title: "Colourful Procession", category: "Festivals", photographer: "Bhupesh Pal" },
-  { id: 10, url: "https://images.unsplash.com/photo-1777222218992-27b952b6b276?auto=format&fit=crop&w=900&q=80", title: "Queue of Faith", category: "Devotees", photographer: "Dibakar Roy" },
-  { id: 11, url: "https://images.unsplash.com/photo-1666694051761-cd972857da30?auto=format&fit=crop&w=900&q=80", title: "Havan Kund", category: "Aarti & Rituals", photographer: "Abhinav Bhardwaj" },
-  { id: 12, url: "https://images.unsplash.com/photo-1764796834177-c06b81b322f1?auto=format&fit=crop&w=900&q=80", title: "Temple in the Valley", category: "Temple", photographer: "Dewang Gupta" },
-  { id: 13, url: "https://images.unsplash.com/photo-1617184003170-1f266c325ff3?auto=format&fit=crop&w=900&q=80", title: "Shyam Mahotsav", category: "Festivals", photographer: "Bhupesh Pal" },
-  { id: 14, url: "https://images.unsplash.com/photo-1684049348966-e947c61152cd?auto=format&fit=crop&w=900&q=80", title: "Bhajan Sandhya", category: "Devotees", photographer: "Dibakar Roy" },
-  { id: 15, url: "https://images.unsplash.com/photo-1605378229010-11aedbb01b24?auto=format&fit=crop&w=900&q=80", title: "Deepdan Ritual", category: "Aarti & Rituals", photographer: "Ashwini Chaudhary" },
-  { id: 16, url: "https://images.unsplash.com/photo-1711547979445-a72c87dfd004?auto=format&fit=crop&w=900&q=80", title: "Mela Procession", category: "Festivals", photographer: "Parth Bhawsar" },
-  { id: 17, url: "https://images.unsplash.com/photo-1639575668834-e0fd81f744ad?auto=format&fit=crop&w=900&q=80", title: "Pilgrims at Rest", category: "Devotees", photographer: "Swastik Arora" },
-  { id: 18, url: "https://images.unsplash.com/photo-1718476971217-677d43112daa?auto=format&fit=crop&w=900&q=80", title: "Candles of Devotion", category: "Aarti & Rituals", photographer: "Rahul Saraf" },
-  { id: 19, url: "https://images.unsplash.com/photo-1625069111882-7735b7b95721?auto=format&fit=crop&w=900&q=80", title: "Inner Sanctum", category: "Temple", photographer: "Yash Parashar" },
-  { id: 20, url: "https://images.unsplash.com/photo-1663154048558-2510385fee89?auto=format&fit=crop&w=900&q=80", title: "Crowd of Bhakts", category: "Festivals", photographer: "Pramod Tiwari" },
+  { id: 1,  url: "/Gallery_photos/gallery-01.jpeg", title: "Temple Darshan", category: "Temple", photographer: "Temple Trust" },
+  { id: 2,  url: "/Gallery_photos/gallery-02.jpeg", title: "Sacred Panorama", category: "Temple", photographer: "Temple Trust" },
+  { id: 3,  url: "/Gallery_photos/gallery-03.jpeg", title: "Devotional Moment", category: "Devotees", photographer: "Temple Trust" },
+  { id: 4,  url: "/Gallery_photos/gallery-04.jpeg", title: "Temple Grounds", category: "Temple", photographer: "Temple Trust" },
+  { id: 5,  url: "/Gallery_photos/gallery-05.jpeg", title: "Festive Celebration", category: "Festivals", photographer: "Temple Trust" },
+  { id: 6,  url: "/Gallery_photos/gallery-06.jpeg", title: "Aarti Ceremony", category: "Aarti & Rituals", photographer: "Temple Trust" },
+  { id: 7,  url: "/Gallery_photos/gallery-07.jpeg", title: "Evening Prayer", category: "Aarti & Rituals", photographer: "Temple Trust" },
+  { id: 8,  url: "/Gallery_photos/gallery-08.jpeg", title: "Temple Architecture", category: "Temple", photographer: "Temple Trust" },
+  { id: 9,  url: "/Gallery_photos/gallery-09.jpeg", title: "Grand Festival", category: "Festivals", photographer: "Temple Trust" },
+  { id: 10, url: "/Gallery_photos/gallery-10.jpeg", title: "Pilgrims Gathering", category: "Devotees", photographer: "Temple Trust" },
+  { id: 11, url: "/Gallery_photos/gallery-11.jpeg", title: "Sacred Offerings", category: "Aarti & Rituals", photographer: "Temple Trust" },
+  { id: 12, url: "/Gallery_photos/gallery-12.png",  title: "Temple Overview", category: "Temple", photographer: "Temple Trust" },
+  { id: 13, url: "/Gallery_photos/gallery-13.jpeg", title: "Devotee Prayers", category: "Devotees", photographer: "Temple Trust" },
+  { id: 14, url: "/Gallery_photos/gallery-14.jpeg", title: "Shyam Bhajan", category: "Devotees", photographer: "Temple Trust" },
+  { id: 15, url: "/Gallery_photos/gallery-15.jpeg", title: "Holy Darbar", category: "Temple", photographer: "Temple Trust" },
+  { id: 16, url: "/Gallery_photos/gallery-16.jpeg", title: "Festival Decorations", category: "Festivals", photographer: "Temple Trust" },
+  { id: 17, url: "/Gallery_photos/gallery-17.jpeg", title: "Lamp Lighting", category: "Aarti & Rituals", photographer: "Temple Trust" },
+  { id: 18, url: "/Gallery_photos/gallery-18.jpeg", title: "Temple at Dusk", category: "Temple", photographer: "Temple Trust" },
 ];
 
 const CATEGORIES: Category[] = ["All", "Temple", "Festivals", "Devotees", "Aarti & Rituals"];
@@ -222,7 +220,7 @@ export function GalleryPage() {
           {/* Image */}
           <div className="max-w-4xl w-full" onClick={e => e.stopPropagation()}>
             <img
-              src={activeItem.url.replace("w=900", "w=1400")}
+              src={activeItem.url.includes("unsplash.com") ? activeItem.url.replace("w=900", "w=1400") : activeItem.url}
               alt={activeItem.title}
               className="w-full max-h-[80vh] object-contain rounded-xl"
               style={{ boxShadow: "0 30px 80px rgba(0,0,0,0.6)" }}
