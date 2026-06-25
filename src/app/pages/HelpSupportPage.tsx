@@ -252,28 +252,7 @@ export function HelpSupportPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.cream }}>
 
       {/* Top bar */}
-      <header className="w-full flex items-center justify-between px-4 sm:px-6 py-3 shadow-sm sticky top-0 z-30"
-        style={{ backgroundColor: C.white, borderBottom: `2px solid ${C.orange}` }}>
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-50"
-            style={{ color: C.darkBlue }}>
-            <ArrowLeft size={14} /> Back
-          </button>
-          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
-            style={{ backgroundColor: C.cream, boxShadow: `0 0 0 2px ${C.darkBlue}` }}>
-            <img src={logoImg} alt="Khatu Shyam Ji" className="w-full h-full object-cover" />
-          </div>
-          <p className="text-sm font-bold" style={{ color: C.darkBlue }}>Help &amp; Support</p>
-        </div>
-        <button onClick={() => navigate("/login")}
-          className="px-4 py-1.5 rounded-md text-xs font-bold text-white"
-          style={{ backgroundColor: C.green }}>
-          My Account
-        </button>
-      </header>
-
-      {/* ── Hero with search ─────────────────────────── */}
+{/* ── Hero with search ─────────────────────────── */}
       <section className="relative overflow-hidden" style={{
         background: `linear-gradient(135deg, ${C.darkBlue} 0%, #2a3fa8 100%)`,
       }}>
@@ -459,9 +438,7 @@ export function HelpSupportPage() {
       {/* ══ HELPLINE NUMBERS SECTION ════════════════════ */}
       <section className="w-full py-16 px-4 sm:px-6" style={{ background: `linear-gradient(180deg, ${C.cream} 0%, #FFF8E7 100%)` }}>
         <div className="max-w-7xl mx-auto">
-
-          {/* Section header */}
-          <div className="text-center mb-10">
+<div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 mb-3 px-4 py-1.5 rounded-full"
               style={{ backgroundColor: `${C.orange}18`, border: `1px solid ${C.orange}40` }}>
               <Phone size={13} color={C.orange} />

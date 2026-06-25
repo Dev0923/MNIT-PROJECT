@@ -5,15 +5,10 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import {
-  Menu, X, Bell, Clock,
-  Phone, MapPin, Shield, Heart,
-  Users2, Car, Sun, ChevronDown, Cloud, CloudRain, CloudSun, CloudLightning,
-  Landmark, Stethoscope, ClipboardList,
-  HandCoins, UtensilsCrossed,
-  Building2, ScrollText,
-  ChevronRight, Info as InfoIcon, CalendarDays, Star as StarIcon, Newspaper,
-  BookOpen, MapPinned, Images, Video, Rotate3d, Network, ShieldAlert,
-} from "lucide-react";
+  Bell, Clock,
+    Users2, Sun, Cloud, CloudRain, CloudSun, CloudLightning,
+        CalendarDays,
+  } from "lucide-react";
 import templeImg from "../../imports/khatu-shyam-ji.jpg";
 import logoImg from "../../imports/image-21.png";
 import imgLostFound from "../../imports/lost and found.avif";
@@ -35,8 +30,6 @@ const C = {
   muted: "#666666",
 };
 
-const NAV_KEYS = ["home", "about", "crowd", "permission", "liveDarshan", "melaMap", "gallery", "donation", "help"];
-
 export function HomePage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -44,140 +37,10 @@ export function HomePage() {
   const setLang = (l: "en" | "hi") => i18n.changeLanguage(l);
 
   // Live Weather Logic
-  const [weatherTemp, setWeatherTemp] = useState<string>("24°C");
   const [weatherCode, setWeatherCode] = useState<number>(800); // OpenWeather code for Clear Sky
 
-  useEffect(() => {
-    async function fetchWeather() {
-      try {
-        const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY || "8d2de98e089f1c28e1a22fc19a24ef04";
-        const res = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=27.3667&lon=75.4000&units=metric&appid=${apiKey}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.main && data.weather && data.weather[0]) {
-            setWeatherTemp(`${Math.round(data.main.temp)}°C`);
-            setWeatherCode(data.weather[0].id);
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching weather:", err);
-      }
-    }
-    fetchWeather();
-  }, []);
-
-  const weatherInfo = useMemo(() => {
-    let descEn = "Clear sky";
-    let descHi = "साफ आसमान";
-    let iconName = "sun";
-
-    const code = weatherCode;
-    // Map OpenWeather weather codes (see https://openweathermap.org/weather-conditions)
-    if (code === 800) {
-      descEn = "Clear sky";
-      descHi = "साफ आसमान";
-      iconName = "sun";
-    } else if (code === 801) {
-      descEn = "Partly cloudy";
-      descHi = "आंशिक रूप से बादल";
-      iconName = "cloud-sun";
-    } else if (code >= 802 && code <= 804) {
-      descEn = "Cloudy";
-      descHi = "बादल";
-      iconName = "cloud";
-    } else if (code >= 700 && code < 800) {
-      descEn = "Foggy / Mist";
-      descHi = "कोहरा / धुंध";
-      iconName = "cloud";
-    } else if ((code >= 300 && code < 400) || (code >= 500 && code < 600)) {
-      descEn = "Rainy";
-      descHi = "बारिश";
-      iconName = "cloud-rain";
-    } else if (code >= 200 && code < 300) {
-      descEn = "Thunderstorm";
-      descHi = "आंधी-तूफान";
-      iconName = "cloud-lightning";
-    } else {
-      descEn = "Cloudy";
-      descHi = "बादल";
-      iconName = "cloud";
-    }
-
-    return {
-      desc: lang === "hi" ? `${descHi}, खाटू` : `${descEn}, Khatu`,
-      iconName
-    };
-  }, [weatherCode, lang]);
-
-  const isLoggedIn = !!localStorage.getItem("token");
-
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState("home");
-  const [isSOSOpen, setIsSOSOpen] = useState(false);
-  const [permOpen, setPermOpen] = useState(false);
-  const [mobilePermOpen, setMobilePermOpen] = useState(false);
-  const [donationOpen, setDonationOpen] = useState(false);
-  const [mobileDonationOpen, setMobileDonationOpen] = useState(false);
-  const [aboutOpen, setAboutOpen] = useState(false);
-  const [mobileAboutOpen, setMobileAboutOpen] = useState(false);
-  const [galleryOpen, setGalleryOpen] = useState(false);
-  const [mobileGalleryOpen, setMobileGalleryOpen] = useState(false);
-  const [templeSubOpen, setTempleSubOpen] = useState(false);
-  const [mobileTempleSubOpen, setMobileTempleSubOpen] = useState(false);
-  const [historySubOpen, setHistorySubOpen] = useState(false);
-  const [mobileHistorySubOpen, setMobileHistorySubOpen] = useState(false);
-
-  /* ── Live Announcements from Admin portal ─────────────── */
-  interface LiveAnnouncement { id: number; text: string; active: boolean; created_at: string; }
-  const [announcements, setAnnouncements] = useState<LiveAnnouncement[]>([]);
-
-  useEffect(() => {
-    const fetchAnn = () =>
-      fetch("http://localhost:8000/api/admin/announcements?active_only=true")
-        .then(r => r.ok ? r.json() : [])
-        .then((data: LiveAnnouncement[]) => setAnnouncements(data))
-        .catch(() => { /* keep previous */ });
-    fetchAnn();
-    const timer = setInterval(fetchAnn, 60_000); // refresh every 60 s
-    return () => clearInterval(timer);
-  }, []);
-
-  const PERMISSION_ITEMS = [
-    { label: "Vehicle Permission", icon: <Car size={16} color={C.pink} />, slug: "vehicle-permits" },
-    { label: "Bandhara Permission", icon: <Landmark size={16} color={C.darkBlue} />, slug: "bandhara-permission" },
-    { label: "Medical Camp", icon: <Stethoscope size={16} color="#9333EA" />, slug: "medical-camp" },
-    { label: "Other Permissions", icon: <ClipboardList size={16} color={C.orange} />, slug: "other-permissions" },
-  ];
-
-  const DONATION_ITEMS = [
-    { label: "Donation", icon: <HandCoins size={16} color={C.orange} />, slug: "donation-portal" },
-    { label: "Annadaan", icon: <UtensilsCrossed size={16} color={C.green} />, path: "/services/annadaan-seva" },
-  ];
 
 
-
-  const GALLERY_ITEMS = [
-    { label: "Photos", icon: <Images size={16} color={C.orange} />, path: "/gallery" },
-    { label: "Videos", icon: <Video size={16} color={C.darkBlue} />, path: "/gallery/videos" },
-    { label: "Virtual Tour", icon: <Rotate3d size={16} color="#9333EA" />, path: "/gallery/virtual-tour" },
-  ];
-
-  const TEMPLE_SUB_ITEMS = [
-    { label: "About Temple", icon: <InfoIcon size={15} color={C.orange} />, slug: "about-temple" },
-    { label: "Temple Timings", icon: <Clock size={15} color={C.darkBlue} />, slug: "temple-timings" },
-    { label: "Important Days", icon: <StarIcon size={15} color={C.pink} />, slug: "important-days" },
-    { label: "News And Events", icon: <Newspaper size={15} color={C.green} />, slug: "news-events" },
-  ];
-
-  const HISTORY_SUB_ITEMS = [
-    { label: "Temple History", icon: <BookOpen size={15} color={C.darkBlue} />, slug: "temple-history" },
-    { label: "About Khatu", icon: <MapPinned size={15} color={C.green} />, slug: "about-khatu" },
-  ];
-
-  const ABOUT_ITEMS: Array<{ label: string; icon: React.ReactNode; slug: string; subItems?: typeof TEMPLE_SUB_ITEMS }> = [
-    { label: "Temple", icon: <Building2 size={16} color={C.orange} />, slug: "about-temple", subItems: TEMPLE_SUB_ITEMS },
-    { label: "History", icon: <ScrollText size={16} color={C.darkBlue} />, slug: "about-history", subItems: HISTORY_SUB_ITEMS },
-  ];
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.cream }}>

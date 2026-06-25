@@ -1,5 +1,6 @@
 import { createBrowserRouter, Outlet } from "react-router";
 import { Footer } from "./components/Footer";
+import { Header } from "./components/Header";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { ServicePage } from "./pages/ServicePage";
@@ -30,6 +31,7 @@ import { MedicalCampPermissionPage } from "./pages/MedicalCampPermissionPage";
 function RootLayout() {
   return (
     <div className="flex flex-col min-h-screen">
+      <Header />
       <div className="flex-1">
         <Outlet />
       </div>

@@ -371,29 +371,7 @@ export function BandharaPermissionPage() {
 
   return (
     <div className="min-h-screen py-10 px-4 md:px-8" style={{ backgroundColor: C.cream }}>
-      {/* Header bar */}
-      <header className="max-w-6xl mx-auto flex items-center justify-between mb-8">
-        <button
-          onClick={() => {
-            if (step === "form") setStep("selection");
-            else navigate("/");
-          }}
-          className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all shadow-md hover:scale-105"
-          style={{ backgroundColor: C.white, color: C.darkBlue }}
-        >
-          <ArrowLeft size={16} /> Back
-        </button>
-        <div className="text-right">
-          <h2 className="text-2xl font-black tracking-tight" style={{ color: C.darkBlue, fontFamily: "'Georgia', serif" }}>
-            Bhandara Slot Booking
-          </h2>
-          <p className="text-xs uppercase tracking-widest font-bold" style={{ color: C.orange }}>
-            Devotee Services Portal
-          </p>
-        </div>
-      </header>
-
-      {/* Main card */}
+{/* Main card */}
       <main className="max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl bg-white border border-gray-100 min-h-[500px]">
         {/* Step tracker banner */}
         <div className="px-8 py-5 flex items-center justify-between border-b" style={{ borderColor: C.border, backgroundColor: "#fafaf8" }}>

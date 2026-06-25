@@ -91,37 +91,7 @@ export function LiveDarshanPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.cream }}>
 
       {/* Top bar */}
-      <header className="w-full flex items-center justify-between px-4 sm:px-6 py-3 sticky top-0 z-30"
-        style={{ backgroundColor: C.white, borderBottom: `2px solid ${C.orange}`, boxShadow: "0 2px 10px rgba(31,47,140,0.06)" }}>
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-50"
-            style={{ color: C.darkBlue }}>
-            <ArrowLeft size={14} /> Back
-          </button>
-          <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0"
-            style={{ backgroundColor: C.cream, boxShadow: `0 0 0 2px ${C.darkBlue}` }}>
-            <img src={logoImg} alt="Khatu Shyam Ji" className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <p className="text-sm font-bold" style={{ color: C.darkBlue }}>Live Darshan</p>
-            <p className="text-[10px] uppercase tracking-widest" style={{ color: C.muted }}>Khatu Shyam Ji Temple</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold"
-            style={{ backgroundColor: C.cream, color: C.darkBlue, border: `1px solid ${C.border}` }}>
-            <Bell size={12} /> Notify
-          </button>
-          <button onClick={() => navigate("/services/donation-portal")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-white"
-            style={{ backgroundColor: C.orange, boxShadow: `0 4px 12px rgba(247,148,29,0.30)` }}>
-            <HandCoins size={12} /> Donate
-          </button>
-        </div>
-      </header>
-
-      {/* Main grid */}
+{/* Main grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 grid lg:grid-cols-[1fr_340px] gap-6">
 
         {/* ─── Left: Player + Meta ─────────────────────── */}

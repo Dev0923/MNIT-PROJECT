@@ -94,16 +94,7 @@ export function ReportLostItemPage() {
 
   return (
     <div className="min-h-screen bg-[#FDF5E6] font-sans flex flex-col">
-      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full">
-            <ArrowLeft size={20} className="text-[#1F2F8C]" />
-          </button>
-          <h1 className="text-xl font-bold text-[#1F2F8C]">Report Lost</h1>
-        </div>
-      </header>
-
-      <main className="flex-1 max-w-3xl mx-auto w-full p-4 py-8">
+<main className="flex-1 max-w-3xl mx-auto w-full p-4 py-8">
         <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
           <div className="flex gap-4 mb-8">
             <button

@@ -163,66 +163,7 @@ export function MelaMapPage() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.cream }}>
 
       {/* ── Top bar ─────────────────────────────────────── */}
-      <header className="w-full flex items-center gap-3 px-4 py-3 shadow-md z-30"
-        style={{ backgroundColor: C.white, borderBottom: `2px solid ${C.orange}` }}>
-        <button onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-colors hover:bg-orange-50"
-          style={{ color: C.darkBlue }}>
-          <ArrowLeft size={14} /> Back
-        </button>
-
-        <div className="flex-1 max-w-xl relative">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-full"
-            style={{ backgroundColor: C.cream, border: `1px solid ${C.border}` }}>
-            <Search size={15} color={C.muted} />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Search temple, parking, food, hospital…"
-              className="flex-1 bg-transparent outline-none text-xs"
-              style={{ color: C.darkText }}
-            />
-            {query && (
-              <button onClick={() => setQuery("")}><X size={14} color={C.muted} /></button>
-            )}
-          </div>
-          {/* Suggestions */}
-          {query && visible.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden shadow-xl z-40"
-              style={{ backgroundColor: C.white, border: `1px solid ${C.border}` }}>
-              {visible.slice(0, 6).map(p => (
-                <button key={p.id} onClick={() => { setSelected(p); setQuery(""); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-orange-50 transition-colors"
-                  style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-white"
-                    style={{ backgroundColor: catColor(p.category) }}>
-                    {catIcon(p.category)}
-                  </span>
-                  <div>
-                    <p className="text-xs font-bold" style={{ color: C.darkText }}>{p.name}</p>
-                    <p className="text-[10px] uppercase tracking-wide" style={{ color: C.muted }}>{p.category}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="hidden md:flex items-center gap-2">
-          <button onClick={() => setLayersOpen(!layersOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-colors"
-            style={{ backgroundColor: layersOpen ? `${C.orange}20` : C.cream, color: C.darkBlue, border: `1px solid ${C.border}` }}>
-            <Layers size={13} /> Layers
-          </button>
-          <button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-white transition-colors hover:opacity-90"
-            style={{ backgroundColor: C.darkBlue }}>
-            <Navigation size={13} /> Directions
-          </button>
-        </div>
-      </header>
-
-      {/* ── Main grid ───────────────────────────────────── */}
+{/* ── Main grid ───────────────────────────────────── */}
       <div className="flex-1 relative grid lg:grid-cols-[280px_1fr] overflow-hidden" style={{ minHeight: "calc(100vh - 60px)" }}>
 
         {/* Left sidebar — categories */}

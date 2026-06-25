@@ -161,9 +161,7 @@ export function SiteMapPage() {
         </button>
         <span className="ml-auto text-white text-xs opacity-60 hidden sm:block">Shri Khatu Shyam Ji Temple Trust</span>
       </div>
-
-      {/* Page header */}
-      <div className="px-8 pt-10 pb-6 text-center border-b" style={{ borderColor: "#e8e8e8" }}>
+<div className="px-8 pt-10 pb-6 text-center border-b" style={{ borderColor: "#e8e8e8" }}>
         <div className="inline-flex items-center gap-2 mb-3 px-4 py-1.5 rounded-full border print:hidden"
           style={{ borderColor: "#d0d0d0", backgroundColor: "#f8f8f8" }}>
           <Network size={13} color="#555" />
