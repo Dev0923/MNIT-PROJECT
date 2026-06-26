@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from database import get_db
-from models.sql_models import BhandaraSpot, BhandaraBooking
+from models.sql_models import BhandaraSpot, BhandaraBooking, User
+from utils.jwt_handler import get_current_user, get_optional_current_user
 
 router = APIRouter(prefix="/api/bhandara", tags=["Bhandara Bookings"])
 
@@ -197,6 +198,7 @@ async def create_bhandara_booking(
     purpose: str = Form(...),
     noc_file: Optional[UploadFile] = File(None),
     id_proof_file: Optional[UploadFile] = File(None),
+    current_user: Optional[User] = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -293,6 +295,7 @@ async def create_bhandara_booking(
         noc_filename=noc_filename,
         id_proof_filename=id_proof_filename,
         status="Pending",
+        user_id=current_user.id if current_user else None,
         created_at=datetime.now(timezone.utc)
     )
 
@@ -305,4 +308,77 @@ async def create_bhandara_booking(
         "message": "Bhandara permission request submitted successfully.",
         "booking_id": booking.id,
         "status": booking.status
+    }
+
+
+@router.get("/my-bookings")
+async def get_my_bookings(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get all Bhandara spot bookings for the current user.
+    """
+    result = await db.execute(
+        select(BhandaraBooking)
+        .where(BhandaraBooking.user_id == current_user.id)
+        .order_by(BhandaraBooking.created_at.desc())
+    )
+    bookings = result.scalars().all()
+    
+    # We can also fetch the spot names for context
+    output = []
+    for b in bookings:
+        spot_res = await db.execute(select(BhandaraSpot).where(BhandaraSpot.id == b.spot_id))
+        spot = spot_res.scalar_one_or_none()
+        output.append({
+            "id": b.id,
+            "spot_id": b.spot_id,
+            "spot_name": spot.name if spot else "Unknown Spot",
+            "start_time": b.start_time.isoformat(),
+            "end_time": b.end_time.isoformat(),
+            "duration_hours": b.duration_hours,
+            "org_name": b.org_name,
+            "org_address": b.org_address,
+            "organiser_type": b.organiser_type,
+            "expected_meals": b.expected_meals,
+            "purpose": b.purpose,
+            "status": b.status,
+            "created_at": b.created_at.isoformat() if b.created_at else None
+        })
+    return output
+
+
+@router.post("/bookings/{booking_id}/cancel")
+async def cancel_bhandara_booking(
+    booking_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancel an existing Bhandara spot booking.
+    """
+    result = await db.execute(
+        select(BhandaraBooking).where(BhandaraBooking.id == booking_id)
+    )
+    booking = result.scalar_one_or_none()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Bhandara booking ID {booking_id} not found."
+        )
+    if booking.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to cancel this Bhandara booking."
+        )
+        
+    booking.status = "Cancelled"
+    await db.commit()
+    await db.refresh(booking)
+    return {
+        "success": True,
+        "booking_id": booking.id,
+        "status": booking.status,
+        "message": "Bhandara booking cancelled successfully."
     }

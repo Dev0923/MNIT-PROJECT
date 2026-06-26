@@ -51,6 +51,7 @@ def format_booking(b: Booking) -> dict:
         "city": b.city,
         "individual_details": b.individual_details,
         "group_details": b.group_details,
+        "status": getattr(b, "status", "Confirmed"),
         "created_at": b.created_at,
     }
 
@@ -166,4 +167,50 @@ async def get_booking_details(
             detail=f"Booking code {booking_id} not found."
         )
         
+    return BookingResponse(**format_booking(booking))
+
+
+@router.post("/{booking_id}/cancel", response_model=BookingResponse)
+async def cancel_booking(
+    booking_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancel an upcoming Darshan booking.
+    """
+    result = await db.execute(
+        select(Booking).where(Booking.booking_id == booking_id.upper())
+    )
+    booking = result.scalar_one_or_none()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Booking code {booking_id} not found."
+        )
+    if booking.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to cancel this booking."
+        )
+    
+    booking.status = "Cancelled"
+    
+    # Restoring slot capacity if slot is found
+    try:
+        slot_time = booking.date.replace(minute=0, second=0, microsecond=0)
+        result_slot = await db.execute(
+            select(DarshanSlot).where(DarshanSlot.slot_time == slot_time).with_for_update()
+        )
+        slot = result_slot.scalar_one_or_none()
+        if slot:
+            booking_size = 1
+            if booking.booking_type == "group" and booking.group_details:
+                booking_size = booking.group_details.get("count", 1)
+            slot.booked_count = max(0, slot.booked_count - booking_size)
+    except Exception as e:
+        print(f"[WARNING] Could not restore slot capacity during cancellation: {e}")
+
+    await db.commit()
+    await db.refresh(booking)
     return BookingResponse(**format_booking(booking))

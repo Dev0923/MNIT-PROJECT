@@ -200,10 +200,26 @@ async def seed_data():
 async def init_db():
     """Initialize database: create tables if they do not exist."""
     from models.sql_models import Base
+    from sqlalchemy import text
     try:
         async with engine.begin() as conn:
             # Create all tables defined on the Base metadata
             await conn.run_sync(Base.metadata.create_all)
+            
+            # Dynamically apply migrations for missing columns in existing tables (for Neon compatibility)
+            try:
+                await conn.execute(text("ALTER TABLE khatu_bookings ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'Confirmed'"))
+            except Exception as ex:
+                print(f"[INFO] Migration: Column status might already exist on khatu_bookings: {ex}")
+            try:
+                await conn.execute(text("ALTER TABLE khatu_bhandara_bookings ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES khatu_users(id)"))
+            except Exception as ex:
+                print(f"[INFO] Migration: Column user_id might already exist on khatu_bhandara_bookings: {ex}")
+            try:
+                await conn.execute(text("ALTER TABLE khatu_general_permissions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES khatu_users(id)"))
+            except Exception as ex:
+                print(f"[INFO] Migration: Column user_id might already exist on khatu_general_permissions: {ex}")
+
         print("[OK] PostgreSQL database tables initialized successfully.")
         
         # Seed the data

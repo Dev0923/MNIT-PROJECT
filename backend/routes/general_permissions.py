@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Form, UploadFile,
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from database import get_db
-from models.sql_models import GeneralPermission
+from models.sql_models import GeneralPermission, User
+from utils.jwt_handler import get_current_user, get_optional_current_user
 from pydantic import BaseModel
 from typing import List, Optional
 import random
@@ -29,6 +30,7 @@ async def apply_general_permission(
     date: str = Form(...),
     registration_file: Optional[UploadFile] = File(None),
     doctor_id_file: Optional[UploadFile] = File(None),
+    current_user: Optional[User] = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     # Handle files
@@ -55,7 +57,8 @@ async def apply_general_permission(
         subtype=subtype,
         purpose=purpose,
         date=date,
-        status="pending"
+        status="pending",
+        user_id=current_user.id if current_user else None
     )
     db.add(db_perm)
     await db.commit()
@@ -65,12 +68,52 @@ async def apply_general_permission(
 @router.get("/my-applications")
 async def get_my_applications(
     type: Optional[str] = None,
+    current_user: Optional[User] = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(GeneralPermission)
+    # If a regular devotee is requesting, only return their own permissions
+    if current_user and not current_user.is_admin:
+        stmt = stmt.where(GeneralPermission.user_id == current_user.id)
+        
     if type:
         stmt = stmt.where(GeneralPermission.type == type)
     
     result = await db.execute(stmt)
     perms = result.scalars().all()
     return perms
+
+
+@router.post("/applications/{permission_code}/cancel")
+async def cancel_general_permission(
+    permission_code: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancel an applied general permission request (Bhandara camp, Medical camp, etc.).
+    """
+    result = await db.execute(
+        select(GeneralPermission).where(GeneralPermission.permission_code == permission_code)
+    )
+    perm = result.scalar_one_or_none()
+    if not perm:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Permission request {permission_code} not found."
+        )
+    if perm.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to cancel this application request."
+        )
+        
+    perm.status = "cancelled"
+    await db.commit()
+    await db.refresh(perm)
+    return {
+        "success": True,
+        "permission_code": perm.permission_code,
+        "status": perm.status,
+        "message": "Application request cancelled successfully."
+    }

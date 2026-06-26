@@ -259,3 +259,54 @@ async def get_my_bookings(
         })
         
     return output
+
+
+@router.post("/bookings/{booking_id}/cancel")
+async def cancel_accommodation_booking(
+    booking_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancel an accommodation (stay) booking.
+    """
+    result = await db.execute(
+        select(AccommodationBooking).where(AccommodationBooking.booking_id == booking_id.upper())
+    )
+    booking = result.scalar_one_or_none()
+    if not booking:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Accommodation booking {booking_id} not found."
+        )
+    if booking.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to cancel this accommodation booking."
+        )
+        
+    booking.status = "Cancelled"
+    
+    # Increment available rooms back
+    try:
+        room_stmt = select(AccommodationRoom).where(
+            (AccommodationRoom.property_id == booking.property_id)
+        )
+        room_res = await db.execute(room_stmt)
+        all_rooms = room_res.scalars().all()
+        for r in all_rooms:
+            room_str = f"{r.type} ({r.category})"
+            if room_str.lower() == booking.room_type.lower() or r.type.lower() in booking.room_type.lower():
+                r.available_rooms = min(r.total_rooms, r.available_rooms + 1)
+                break
+    except Exception as e:
+        print(f"[WARNING] Could not restore room capacity during cancellation: {e}")
+        
+    await db.commit()
+    await db.refresh(booking)
+    return {
+        "success": True,
+        "booking_id": booking.booking_id,
+        "status": booking.status,
+        "message": "Stay booking cancelled successfully."
+    }

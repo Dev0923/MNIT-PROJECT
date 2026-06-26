@@ -82,6 +82,7 @@ class BookingResponse(BaseModel):
     city: str
     individual_details: Optional[IndividualDetails] = None
     group_details: Optional[GroupDetails] = None
+    status: str = "Confirmed"
     created_at: datetime
 
     class Config:

@@ -79,3 +79,102 @@ async def send_alert(payload: AlertPayload):
         "recipients": len(manager.active),
         "message": payload.message,
     }
+
+
+# ── SOS Emergency Endpoints ─────────────────────────────────────
+from fastapi import Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from database import get_db
+from models.sql_models import SOSAlert, User
+from utils.jwt_handler import get_current_user
+from typing import Optional
+
+class SOSActivateRequest(BaseModel):
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+@router.post("/sos/activate")
+async def activate_sos(
+    payload: SOSActivateRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Trigger/Activate a devotee SOS distress call.
+    Automatically cancels any active SOS alerts for this user first.
+    """
+    # Cancel previous active SOS signals for this user
+    active_res = await db.execute(
+        select(SOSAlert)
+        .where(SOSAlert.user_id == current_user.id)
+        .where(SOSAlert.status == "Activated")
+    )
+    for alert in active_res.scalars().all():
+        alert.status = "Cancelled"
+
+    # Create new SOS record
+    new_sos = SOSAlert(
+        user_id=current_user.id,
+        status="Activated",
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        created_at=datetime.utcnow()
+    )
+    db.add(new_sos)
+    
+    # Broadcast to admin clients via WebSockets
+    try:
+        distress_msg = {
+            "type": "sos_alert",
+            "user_id": current_user.id,
+            "user_name": current_user.name,
+            "user_phone": current_user.phone,
+            "latitude": payload.latitude,
+            "longitude": payload.longitude,
+            "timestamp": new_sos.created_at.isoformat()
+        }
+        await manager.broadcast(distress_msg)
+    except Exception as e:
+        print(f"[WARNING] Failed to broadcast SOS WebSocket alert: {e}")
+
+    await db.commit()
+    await db.refresh(new_sos)
+    
+    return {
+        "success": True,
+        "message": "Emergency SOS distress signal has been recorded and broadcasted. Help is on the way.",
+        "sos": {
+            "id": new_sos.id,
+            "status": new_sos.status,
+            "latitude": new_sos.latitude,
+            "longitude": new_sos.longitude,
+            "created_at": new_sos.created_at.isoformat()
+        }
+    }
+
+
+@router.post("/sos/cancel")
+async def cancel_sos(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cancel all active SOS distress calls for the devotee.
+    """
+    active_res = await db.execute(
+        select(SOSAlert)
+        .where(SOSAlert.user_id == current_user.id)
+        .where(SOSAlert.status == "Activated")
+    )
+    active_alerts = active_res.scalars().all()
+    for alert in active_alerts:
+        alert.status = "Cancelled"
+        
+    await db.commit()
+    return {
+        "success": True,
+        "message": "SOS active distress signals cancelled successfully.",
+        "cancelled_count": len(active_alerts)
+    }

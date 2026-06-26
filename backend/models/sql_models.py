@@ -37,6 +37,7 @@ class User(Base):
     donations = relationship("Donation", back_populates="user", cascade="all, delete-orphan")
     vehicles = relationship("Vehicle", back_populates="owner", cascade="all, delete-orphan")
     accommodation_bookings = relationship("AccommodationBooking", back_populates="user", cascade="all, delete-orphan")
+    sos_alerts = relationship("SOSAlert", back_populates="user", cascade="all, delete-orphan")
 
 
 class OTP(Base):
@@ -62,6 +63,7 @@ class Booking(Base):
     city = Column(String(255), nullable=False)
     individual_details = Column(JSONB, nullable=True)  # Name, age, wheelchair
     group_details = Column(JSONB, nullable=True)  # Count, names, wheelchairs
+    status = Column(String(50), default="Confirmed", nullable=False, server_default="Confirmed")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     # Relationships
@@ -180,9 +182,11 @@ class BhandaraBooking(Base):
     noc_filename = Column(String(255), nullable=True)
     id_proof_filename = Column(String(255), nullable=True)
     status = Column(String(50), default="Pending")
+    user_id = Column(Integer, ForeignKey("khatu_users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     spot = relationship("BhandaraSpot", back_populates="bookings")
+    user = relationship("User")
 
 
 class LostItem(Base):
@@ -243,7 +247,21 @@ class GeneralPermission(Base):
     purpose = Column(String(255), nullable=False)
     date = Column(String(50), nullable=False)
     status = Column(String(50), default="pending")  # "pending", "approved", "rejected"
+    user_id = Column(Integer, ForeignKey("khatu_users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User")
+class SOSAlert(Base):
+    __tablename__ = "khatu_sos_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("khatu_users.id", ondelete="SET NULL"), nullable=True)
+    status = Column(String(50), default="Activated")  # "Activated", "Cancelled"
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="sos_alerts")
 
 
 class Announcement(Base):

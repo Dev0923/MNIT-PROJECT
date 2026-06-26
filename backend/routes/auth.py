@@ -229,7 +229,7 @@ async def get_profile(
     Return the current user's personal info plus all their activity history:
     darshan bookings, donations, accommodation bookings, and vehicle permits.
     """
-    from models.sql_models import Booking, Donation, AccommodationBooking, Vehicle, VehiclePermission, AccommodationProperty
+    from models.sql_models import Booking, Donation, AccommodationBooking, Vehicle, VehiclePermission, AccommodationProperty, SOSAlert, BhandaraBooking, GeneralPermission, BhandaraSpot
     from sqlalchemy.orm import selectinload
 
     # Darshan bookings
@@ -247,6 +247,30 @@ async def get_profile(
         .order_by(Donation.created_at.desc())
     )
     donations = res_donations.scalars().all()
+
+    # SOS alerts
+    res_sos = await db.execute(
+        select(SOSAlert)
+        .where(SOSAlert.user_id == current_user.id)
+        .order_by(SOSAlert.created_at.desc())
+    )
+    sos_alerts = res_sos.scalars().all()
+
+    # Bhandara spot bookings
+    res_bhandara = await db.execute(
+        select(BhandaraBooking)
+        .where(BhandaraBooking.user_id == current_user.id)
+        .order_by(BhandaraBooking.created_at.desc())
+    )
+    bhandara_bookings = res_bhandara.scalars().all()
+
+    # General Permissions (camps & stalls)
+    res_perms = await db.execute(
+        select(GeneralPermission)
+        .where(GeneralPermission.user_id == current_user.id)
+        .order_by(GeneralPermission.created_at.desc())
+    )
+    general_permissions = res_perms.scalars().all()
 
     # Accommodation bookings
     res_acc = await db.execute(
@@ -300,7 +324,7 @@ async def get_profile(
             ],
         })
 
-    return {
+    output_profile = {
         "user": {
             "id": current_user.id,
             "name": current_user.name,
@@ -321,6 +345,7 @@ async def get_profile(
                 "city": b.city,
                 "individual_details": b.individual_details,
                 "group_details": b.group_details,
+                "status": getattr(b, "status", "Confirmed"),
                 "created_at": b.created_at.isoformat() if b.created_at else None,
             }
             for b in bookings
@@ -355,4 +380,52 @@ async def get_profile(
             for ab in acc_bookings
         ],
         "vehicles": vehicle_data,
+        "sos_alerts": [
+            {
+                "id": s.id,
+                "status": s.status,
+                "latitude": s.latitude,
+                "longitude": s.longitude,
+                "created_at": s.created_at.isoformat() if s.created_at else None,
+            }
+            for s in sos_alerts
+        ],
+        "bhandara_bookings": [] # we'll populate below
     }
+
+    # Fetch spot names and fill Bhandara bookings
+    bhandara_list = []
+    for bb in bhandara_bookings:
+        spot_res = await db.execute(select(BhandaraSpot).where(BhandaraSpot.id == bb.spot_id))
+        spot = spot_res.scalar_one_or_none()
+        bhandara_list.append({
+            "id": bb.id,
+            "spot_id": bb.spot_id,
+            "spot_name": spot.name if spot else "Unknown Spot",
+            "start_time": bb.start_time.isoformat() if bb.start_time else None,
+            "end_time": bb.end_time.isoformat() if bb.end_time else None,
+            "duration_hours": bb.duration_hours,
+            "org_name": bb.org_name,
+            "expected_meals": bb.expected_meals,
+            "purpose": bb.purpose,
+            "status": bb.status,
+            "created_at": bb.created_at.isoformat() if bb.created_at else None,
+        })
+    output_profile["bhandara_bookings"] = bhandara_list
+
+    output_profile["general_permissions"] = [
+        {
+            "id": gp.id,
+            "permission_code": gp.permission_code,
+            "name": gp.name,
+            "type": gp.type,
+            "subtype": gp.subtype,
+            "purpose": gp.purpose,
+            "date": gp.date,
+            "status": gp.status,
+            "created_at": gp.created_at.isoformat() if gp.created_at else None,
+        }
+        for gp in general_permissions
+    ]
+
+    return output_profile

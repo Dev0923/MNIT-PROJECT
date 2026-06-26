@@ -3,7 +3,8 @@ import {
   X, User, Phone, Mail, Calendar, Clock, ShieldCheck,
   Ticket, HandCoins, Building2, Car,
   LogOut, Loader2, IndianRupee, MapPin, BadgeCheck,
-  AlertCircle, CheckCircle2, Timer, RefreshCw
+  AlertCircle, CheckCircle2, Timer, RefreshCw,
+  ShieldAlert, Utensils, Activity
 } from "lucide-react";
 
 const C = {
@@ -22,7 +23,7 @@ const C = {
 
 const API_BASE = "http://localhost:8000";
 
-type Tab = "overview" | "bookings" | "donations" | "accommodation" | "vehicles";
+type Tab = "overview" | "bookings" | "donations" | "accommodation" | "vehicles" | "sos" | "bhandara" | "medical";
 
 interface ProfileData {
   user: {
@@ -44,6 +45,7 @@ interface ProfileData {
     city: string;
     individual_details: any;
     group_details: any;
+    status: string;
     created_at: string | null;
   }>;
   donations: Array<{
@@ -82,6 +84,37 @@ interface ProfileData {
       valid_to: string | null;
       allowed_zones: string[];
     }>;
+  }>;
+  sos_alerts: Array<{
+    id: number;
+    status: string;
+    latitude: number | null;
+    longitude: number | null;
+    created_at: string | null;
+  }>;
+  bhandara_bookings: Array<{
+    id: number;
+    spot_id: number;
+    spot_name: string;
+    start_time: string | null;
+    end_time: string | null;
+    duration_hours: number;
+    org_name: string;
+    expected_meals: number;
+    purpose: string;
+    status: string;
+    created_at: string | null;
+  }>;
+  general_permissions: Array<{
+    id: number;
+    permission_code: string;
+    name: string;
+    type: string;
+    subtype: string;
+    purpose: string;
+    date: string;
+    status: string;
+    created_at: string | null;
   }>;
 }
 
@@ -164,6 +197,7 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | number | null>(null);
   const [error, setError] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -183,6 +217,160 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
       .then((data) => setProfileData(data))
       .catch((err) => setError(err.message || "Could not load profile"))
       .finally(() => setLoading(false));
+  };
+
+  // Action handlers
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this Darshan booking?")) return;
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+    if (!token) return;
+    setActionLoading(bookingId);
+    try {
+      const res = await fetch(`${API_BASE}/api/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to cancel booking");
+      }
+      alert("Darshan booking cancelled successfully.");
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || "Error cancelling booking");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancelStay = async (bookingId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this stay booking?")) return;
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+    if (!token) return;
+    setActionLoading(bookingId);
+    try {
+      const res = await fetch(`${API_BASE}/api/accommodation/bookings/${bookingId}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to cancel stay");
+      }
+      alert("Stay booking cancelled successfully.");
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || "Error cancelling stay booking");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancelBhandaraSpot = async (id: number) => {
+    if (!window.confirm("Are you sure you want to cancel this Bhandara spot booking?")) return;
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+    if (!token) return;
+    setActionLoading(id);
+    try {
+      const res = await fetch(`${API_BASE}/api/bhandara/bookings/${id}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to cancel Bhandara booking");
+      }
+      alert("Bhandara booking cancelled successfully.");
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || "Error cancelling Bhandara booking");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleCancelGeneralPermission = async (code: string) => {
+    if (!window.confirm("Are you sure you want to cancel this application request?")) return;
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+    if (!token) return;
+    setActionLoading(code);
+    try {
+      const res = await fetch(`${API_BASE}/api/general-permissions/applications/${code}/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to cancel application");
+      }
+      alert("Application cancelled successfully.");
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || "Error cancelling application");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleActivateSOS = async () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+    if (!token) return;
+    
+    let lat: number | null = null;
+    let lng: number | null = null;
+
+    if (navigator.geolocation) {
+      try {
+        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 6000 });
+        });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch (e) {
+        console.warn("Geolocation prompt failed or timed out:", e);
+      }
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/alerts/sos/activate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lng })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || "Failed to activate SOS");
+      }
+      alert("EMERGENCY DISTRESS SOS ACTIVATED! The Temple Control Room has been notified with your coordinates.");
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || "Could not trigger SOS alert");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelSOS = async () => {
+    const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/alerts/sos/cancel`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Failed to cancel SOS signal");
+      alert("Active SOS signals cancelled.");
+      fetchProfile();
+    } catch (err: any) {
+      alert(err.message || "Could not cancel SOS signal");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Fetch profile data when panel opens
@@ -247,6 +435,24 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
       label: "Vehicles",
       icon: <Car size={14} />,
       count: profileData?.vehicles.length,
+    },
+    {
+      key: "sos",
+      label: "SOS",
+      icon: <ShieldAlert size={14} />,
+      count: profileData?.sos_alerts.filter(s => s.status === "Activated").length,
+    },
+    {
+      key: "bhandara",
+      label: "Bhandara",
+      icon: <Utensils size={14} />,
+      count: (profileData?.bhandara_bookings.length ?? 0) + (profileData?.general_permissions.filter(gp => gp.type.toLowerCase() === "bandhara").length ?? 0),
+    },
+    {
+      key: "medical",
+      label: "Medical",
+      icon: <Activity size={14} />,
+      count: profileData?.general_permissions.filter(gp => gp.type.toLowerCase() === "medical").length,
     },
   ];
 
