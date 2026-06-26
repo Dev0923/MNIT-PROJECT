@@ -16,6 +16,8 @@ from routes.admin import router as admin_router
 from routes.lost_found import router as lost_found_router
 from routes.general_permissions import router as general_permissions_router
 from routes.accommodation import router as accommodation_router
+from routes.cameras import router as cameras_router
+from camera.manager import CameraManager
 
 
 @asynccontextmanager
@@ -23,7 +25,15 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     # Create PostgreSQL tables on startup if they don't exist
     await init_db()
+    
+    # Initialize camera worker threads
+    CameraManager().initialize()
+    
     yield
+    
+    # Shutdown camera worker threads
+    CameraManager().shutdown()
+
 
 
 app = FastAPI(
@@ -55,6 +65,7 @@ app.include_router(admin_router)
 app.include_router(lost_found_router)
 app.include_router(general_permissions_router)
 app.include_router(accommodation_router)
+app.include_router(cameras_router)
 
 @app.get("/health")
 def health() -> dict[str, str]:

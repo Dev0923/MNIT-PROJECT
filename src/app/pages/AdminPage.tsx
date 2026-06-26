@@ -1157,6 +1157,28 @@ function LiveStatus() {
   const [screenMode, setScreenMode] = useState<"crowd" | "wait" | "both" | "custom">("both");
   const [broadcast, setBroadcast] = useState(false);
   const [broadcastDone, setBroadcastDone] = useState(false);
+  const [cameras, setCameras] = useState(CAMERAS);
+
+  useEffect(() => {
+    const fetchCameraStatuses = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/cameras");
+        if (res.ok) {
+          const data = await res.json();
+          setCameras(prev => prev.map(c => {
+            const found = data.find((d: any) => d.id === c.id);
+            return found ? { ...c, status: found.status } : c;
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch camera statuses:", err);
+      }
+    };
+
+    fetchCameraStatuses();
+    const statusInterval = setInterval(fetchCameraStatuses, 5000);
+    return () => clearInterval(statusInterval);
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -1167,8 +1189,8 @@ function LiveStatus() {
   }, []);
 
   const totalCount = counts.reduce((a, b) => a + b, 0);
-  const activeCam = CAMERAS.find(c => c.id === selCam) ?? CAMERAS[0];
-  const selCount = counts[CAMERAS.findIndex(c => c.id === selCam)];
+  const activeCam = cameras.find(c => c.id === selCam) ?? cameras[0];
+  const selCount = counts[cameras.findIndex(c => c.id === selCam)];
   const crowdCfg = CROWD_CONFIG[crowd] ?? CROWD_CONFIG["Moderate"];
 
   function doBroadcast() {
@@ -1195,7 +1217,14 @@ function LiveStatus() {
         </div>
         <div className="grid lg:grid-cols-3 gap-0">
           <div className="lg:col-span-2 relative" style={{ aspectRatio: "16/9", backgroundColor: "#0a0a0a", minHeight: 220 }}>
-            <img src={activeCam.img} alt={activeCam.label} className="w-full h-full object-cover opacity-85" />
+            <img 
+              src={activeCam.status === "offline" || activeCam.status === "error"
+                ? activeCam.img 
+                : `http://localhost:8000/api/v1/cameras/${activeCam.id}/stream`
+              } 
+              alt={activeCam.label} 
+              className="w-full h-full object-cover opacity-85" 
+            />
             <div className="absolute inset-0 pointer-events-none">
               {[["top-2 left-2", "border-t-2 border-l-2"], ["top-2 right-2", "border-t-2 border-r-2"],
               ["bottom-2 left-2", "border-b-2 border-l-2"], ["bottom-2 right-2", "border-b-2 border-r-2"]].map(([pos, brd], i) => (
@@ -1214,23 +1243,23 @@ function LiveStatus() {
             </div>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-1 border-l" style={{ borderColor: C.border }}>
-            {CAMERAS.map((cam, i) => (
+            {cameras.map((cam, i) => (
               <button key={cam.id} onClick={() => setSelCam(cam.id)}
                 className="relative overflow-hidden transition-all"
                 style={{ aspectRatio: "16/9", borderBottom: `1px solid ${C.border}`, outline: selCam === cam.id ? `2px solid ${C.orange}` : "none", outlineOffset: "-2px" }}>
                 <img src={cam.img} alt={cam.label} className="w-full h-full object-cover"
-                  style={{ filter: cam.status === "offline" ? "grayscale(1) brightness(0.4)" : selCam === cam.id ? "brightness(1)" : "brightness(0.6)" }} />
+                  style={{ filter: cam.status === "offline" || cam.status === "error" ? "grayscale(1) brightness(0.4)" : selCam === cam.id ? "brightness(1)" : "brightness(0.6)" }} />
                 <div className="absolute inset-0 px-1.5 py-1 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-bold px-1 py-0.5 rounded"
-                      style={{ backgroundColor: cam.status === "offline" ? "rgba(0,0,0,0.7)" : "rgba(220,38,38,0.85)", color: "white" }}>
-                      {cam.status === "offline" ? "OFF" : "● LIVE"}
+                      style={{ backgroundColor: cam.status === "offline" || cam.status === "error" ? "rgba(0,0,0,0.7)" : "rgba(220,38,38,0.85)", color: "white" }}>
+                      {cam.status === "offline" || cam.status === "error" ? "OFF" : "● LIVE"}
                     </span>
                     <span className="text-[9px] font-bold" style={{ backgroundColor: "rgba(0,0,0,0.6)", color: "white", padding: "1px 4px", borderRadius: 3 }}>{cam.id}</span>
                   </div>
                   <div style={{ background: "linear-gradient(to top,rgba(0,0,0,0.75),transparent)", padding: "4px 4px 2px" }}>
                     <p className="text-white text-[9px] font-bold leading-tight truncate">{cam.label}</p>
-                    {cam.status === "online" && <p className="text-[9px]" style={{ color: C.orange }}>{counts[i]} ppl</p>}
+                    {cam.status !== "offline" && cam.status !== "error" && <p className="text-[9px]" style={{ color: C.orange }}>{counts[i]} ppl</p>}
                   </div>
                 </div>
               </button>
