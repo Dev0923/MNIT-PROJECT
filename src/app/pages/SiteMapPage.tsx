@@ -33,6 +33,7 @@ const TREE_DATA: RawNode = {
         { id: "g1", label: "Photos",       path: "/gallery" },
         { id: "g2", label: "Videos",       path: "/gallery/videos" },
         { id: "g3", label: "Virtual Tour", path: "/gallery/virtual-tour" },
+        { id: "g4", label: "Places to Visit", path: "/places-to-visit" },
       ],
     },
     {
