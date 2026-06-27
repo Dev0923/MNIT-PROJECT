@@ -94,7 +94,7 @@ export function DonationPage() {
     setSubmitError("");
     try {
       const vals = getValues();
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };

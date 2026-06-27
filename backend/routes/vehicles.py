@@ -14,6 +14,7 @@ from sqlalchemy import select
 from database import get_db
 from models.sql_models import Vehicle, VehiclePermission, User
 from utils.jwt_handler import get_current_user
+from utils.activity_logger import log_user_activity
 
 router = APIRouter(prefix="/api/vehicles", tags=["Vehicle Permissions"])
 
@@ -122,6 +123,16 @@ async def register_vehicle(
         created_at=datetime.now(timezone.utc)
     )
     db.add(vehicle)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Vehicle Registration",
+            title="Registered a Vehicle",
+            description=f"Plate: {request.plate_number}, Type: {request.vehicle_type}"
+        )
+        
     await db.commit()
     await db.refresh(vehicle)
     return vehicle
@@ -168,6 +179,16 @@ async def request_permit(
         created_at=datetime.now(timezone.utc)
     )
     db.add(permit)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Vehicle Permit",
+            title="Requested Vehicle Permit",
+            description=f"Permit type: {request.permit_type} for Vehicle {vehicle.plate_number}"
+        )
+        
     await db.commit()
     await db.refresh(permit)
     return permit

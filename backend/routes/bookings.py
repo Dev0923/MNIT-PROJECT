@@ -16,6 +16,7 @@ from database import get_db
 from models.sql_models import Booking, User, DarshanSlot
 from models.booking import BookingCreateRequest, BookingResponse
 from utils.jwt_handler import get_current_user, get_optional_current_user
+from utils.activity_logger import log_user_activity
 
 router = APIRouter(prefix="/api/bookings", tags=["Darshan Bookings"])
 
@@ -127,6 +128,16 @@ async def create_booking(
     slot.booked_count += booking_size
 
     db.add(booking_doc)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Darshan Booking",
+            title="Booked Darshan Slot",
+            description=f"Booking ID: {booking_id} for {request.date}"
+        )
+        
     await db.commit()
     await db.refresh(booking_doc)
 

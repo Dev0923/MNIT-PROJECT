@@ -336,8 +336,13 @@ export function BandharaPermissionPage() {
     formData.append("id_proof_file", idFile);
 
     try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
       const res = await fetch("http://127.0.0.1:8000/api/bhandara/book", {
         method: "POST",
+        headers,
         body: formData
       });
       const data = await res.json();

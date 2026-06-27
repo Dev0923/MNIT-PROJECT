@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from database import get_db
 from models.sql_models import AccommodationProperty, AccommodationRoom, AccommodationBooking, User
 from utils.jwt_handler import get_optional_current_user, get_current_user
+from utils.activity_logger import log_user_activity
 
 router = APIRouter(prefix="/api/accommodation", tags=["Accommodation Bookings"])
 
@@ -211,6 +212,16 @@ async def create_booking(
             room.available_rooms -= 1
             
     db.add(booking)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Accommodation",
+            title="Booked Accommodation",
+            description=f"Booked {request.room_type} at {prop.name}"
+        )
+        
     await db.commit()
     await db.refresh(booking)
     

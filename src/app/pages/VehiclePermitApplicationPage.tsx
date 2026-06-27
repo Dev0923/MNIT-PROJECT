@@ -84,7 +84,7 @@ export function VehiclePermitApplicationPage() {
     setLoading(true);
     setError("");
 
-    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+    const token = localStorage.getItem("token") || localStorage.getItem("access_token") || localStorage.getItem("authToken");
 
     if (!token) {
       setError("Authentication required. Please log in first.");

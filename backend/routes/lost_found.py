@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from database import get_db
 from models.sql_models import LostItem, FoundItem, LostPerson, User
+from utils.jwt_handler import get_optional_current_user
+from utils.activity_logger import log_user_activity
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -37,13 +41,31 @@ class LostPersonCreate(BaseModel):
     contact_name: str
     contact_phone: str
     photo_url: Optional[str] = None
+    user_id: Optional[int] = None
 
 @router.post("/lost-item", status_code=status.HTTP_201_CREATED)
-async def create_lost_item(item: LostItemCreate, db: Session = Depends(get_db)):
-    db_item = LostItem(**item.dict())
+async def create_lost_item(
+    item: LostItemCreate,
+    current_user: Optional[User] = Depends(get_optional_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    data = item.dict()
+    if current_user and not data.get("user_id"):
+        data["user_id"] = current_user.id
+    db_item = LostItem(**data)
     db.add(db_item)
-    db.commit()
-    db.refresh(db_item)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Lost Item",
+            title="Reported a Lost Item",
+            description=f"{data['category']} at {data['location']}"
+        )
+        
+    await db.commit()
+    await db.refresh(db_item)
     return db_item
 
 @router.post("/found-item", status_code=status.HTTP_201_CREATED)
@@ -56,34 +78,57 @@ async def create_found_item(item: FoundItemCreate, db: Session = Depends(get_db)
     return db_item
 
 @router.post("/lost-person", status_code=status.HTTP_201_CREATED)
-async def create_lost_person(person: LostPersonCreate, db: Session = Depends(get_db)):
-    db_person = LostPerson(**person.dict())
+async def create_lost_person(
+    person: LostPersonCreate,
+    current_user: Optional[User] = Depends(get_optional_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    data = person.dict()
+    if current_user and not data.get("user_id"):
+        data["user_id"] = current_user.id
+    db_person = LostPerson(**data)
     db.add(db_person)
-    db.commit()
-    db.refresh(db_person)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Lost Person",
+            title="Reported a Missing Person",
+            description=f"Name: {data['name']}"
+        )
+        
+    await db.commit()
+    await db.refresh(db_person)
     return db_person
 
 @router.get("/found-items")
-async def get_found_items(db: Session = Depends(get_db)):
-    items = db.query(FoundItem).filter(FoundItem.status == "In Storage").all()
-    return items
+async def get_found_items(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(FoundItem).where(FoundItem.status == "In Storage"))
+    return result.scalars().all()
 
 @router.put("/claim/{id}")
-async def claim_found_item(id: int, claim_id: str, db: Session = Depends(get_db)):
-    item = db.query(FoundItem).filter(FoundItem.id == id).first()
+async def claim_found_item(id: int, claim_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(FoundItem).where(FoundItem.id == id))
+    item = result.scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     
     item.status = "Claimed"
     item.claim_id = claim_id
-    db.commit()
+    await db.commit()
     return {"message": "Item claimed successfully"}
 
+@router.get("/lost-items")
+async def get_lost_items(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(LostItem).order_by(LostItem.created_at.desc()))
+    return result.scalars().all()
+
 @router.get("/admin/items")
-async def get_all_items(db: Session = Depends(get_db)):
-    lost_items = db.query(LostItem).all()
-    found_items = db.query(FoundItem).all()
-    lost_persons = db.query(LostPerson).all()
+async def get_all_items(db: AsyncSession = Depends(get_db)):
+    lost_items = (await db.execute(select(LostItem))).scalars().all()
+    found_items = (await db.execute(select(FoundItem))).scalars().all()
+    lost_persons = (await db.execute(select(LostPerson))).scalars().all()
     return {
         "lost_items": lost_items,
         "found_items": found_items,

@@ -121,7 +121,11 @@ export function MedicalCampPermissionPage() {
   const fetchApplications = async () => {
     setLoadingApps(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/general-permissions/my-applications?type=Medical");
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
+      const res = await fetch("http://127.0.0.1:8000/api/general-permissions/my-applications?type=Medical", { headers });
       if (res.ok) {
         const data = await res.json();
         setApplications(data);
@@ -261,8 +265,13 @@ export function MedicalCampPermissionPage() {
     formData.append("doctor_id_file", idFile);
 
     try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
       const res = await fetch("http://127.0.0.1:8000/api/general-permissions/apply", {
         method: "POST",
+        headers,
         body: formData
       });
       const data = await res.json();

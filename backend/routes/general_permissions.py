@@ -4,6 +4,7 @@ from sqlalchemy.future import select
 from database import get_db
 from models.sql_models import GeneralPermission, User
 from utils.jwt_handler import get_current_user, get_optional_current_user
+from utils.activity_logger import log_user_activity
 from pydantic import BaseModel
 from typing import List, Optional
 import random
@@ -61,6 +62,16 @@ async def apply_general_permission(
         user_id=current_user.id if current_user else None
     )
     db.add(db_perm)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Permission",
+            title=f"Applied for {type} Permission",
+            description=f"Permission for {subtype} on {date}"
+        )
+        
     await db.commit()
     await db.refresh(db_perm)
     return db_perm

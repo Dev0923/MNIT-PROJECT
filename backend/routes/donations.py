@@ -14,6 +14,7 @@ from database import get_db
 from models.sql_models import Donation, User
 from models.donation import DonationCreateRequest, DonationResponse
 from utils.jwt_handler import get_current_user, get_optional_current_user
+from utils.activity_logger import log_user_activity
 
 router = APIRouter(prefix="/api/donations", tags=["Donations"])
 
@@ -78,6 +79,16 @@ async def create_donation(
     )
 
     db.add(donation_doc)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Donation",
+            title="Made a Donation",
+            description=f"Donated ₹{request.amount} for {request.purpose}"
+        )
+        
     await db.commit()
     await db.refresh(donation_doc)
 

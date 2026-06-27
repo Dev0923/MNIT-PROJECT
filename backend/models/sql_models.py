@@ -234,6 +234,7 @@ class LostPerson(Base):
     contact_phone = Column(String(20), nullable=False)
     photo_url = Column(Text, nullable=True)
     status = Column(String(50), default="Missing")  # Missing, Found
+    user_id = Column(Integer, ForeignKey("khatu_users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 class GeneralPermission(Base):
@@ -332,6 +333,7 @@ class AccommodationBooking(Base):
     property = relationship("AccommodationProperty", back_populates="bookings")
 
 
+
 class GalleryItem(Base):
     """Admin-managed gallery items (photos/videos)."""
     __tablename__ = "khatu_gallery_items"
@@ -345,3 +347,12 @@ class GalleryItem(Base):
     photographer = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
+class UserActivity(Base):
+    __tablename__ = "khatu_user_activities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("khatu_users.id", ondelete="CASCADE"), nullable=False)
+    activity_type = Column(String(50), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

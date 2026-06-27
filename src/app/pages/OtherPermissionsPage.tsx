@@ -42,7 +42,11 @@ export function OtherPermissionsPage() {
   const fetchApplications = async () => {
     setLoadingApps(true);
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/general-permissions/my-applications?type=Other");
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
+      const res = await fetch("http://127.0.0.1:8000/api/general-permissions/my-applications?type=Other", { headers });
       if (res.ok) {
         const data = await res.json();
         setApplications(data);
@@ -163,8 +167,13 @@ export function OtherPermissionsPage() {
     }
 
     try {
+      const token = localStorage.getItem("token") || localStorage.getItem("authToken");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      
       const res = await fetch("http://127.0.0.1:8000/api/general-permissions/apply", {
         method: "POST",
+        headers,
         body: formData
       });
       const data = await res.json();

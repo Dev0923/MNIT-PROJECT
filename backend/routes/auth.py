@@ -229,7 +229,7 @@ async def get_profile(
     Return the current user's personal info plus all their activity history:
     darshan bookings, donations, accommodation bookings, and vehicle permits.
     """
-    from models.sql_models import Booking, Donation, AccommodationBooking, Vehicle, VehiclePermission, AccommodationProperty, SOSAlert, BhandaraBooking, GeneralPermission, BhandaraSpot
+    from models.sql_models import Booking, Donation, AccommodationBooking, Vehicle, VehiclePermission, AccommodationProperty, SOSAlert, BhandaraBooking, GeneralPermission, BhandaraSpot, LostItem, LostPerson
     from sqlalchemy.orm import selectinload
 
     # Darshan bookings
@@ -271,6 +271,22 @@ async def get_profile(
         .order_by(GeneralPermission.created_at.desc())
     )
     general_permissions = res_perms.scalars().all()
+
+    # Lost Items reported by user
+    res_lost_items = await db.execute(
+        select(LostItem)
+        .where(LostItem.user_id == current_user.id)
+        .order_by(LostItem.created_at.desc())
+    )
+    lost_items = res_lost_items.scalars().all()
+
+    # Lost Persons reported by user
+    res_lost_persons = await db.execute(
+        select(LostPerson)
+        .where(LostPerson.user_id == current_user.id)
+        .order_by(LostPerson.created_at.desc())
+    )
+    lost_persons = res_lost_persons.scalars().all()
 
     # Accommodation bookings
     res_acc = await db.execute(
@@ -324,6 +340,34 @@ async def get_profile(
             ],
         })
 
+    # Activity log — from khatu_user_activities table
+    activities_list = []
+    try:
+        from models.sql_models import UserActivity
+        res_activities = await db.execute(
+            select(UserActivity)
+            .where(UserActivity.user_id == current_user.id)
+            .order_by(UserActivity.created_at.desc())
+            .limit(50)
+        )
+        raw_activities = res_activities.scalars().all()
+        activities_list = [
+            {
+                "id": a.id,
+                "activity_type": a.activity_type,
+                "title": a.title,
+                "description": a.description,
+                "created_at": a.created_at.isoformat() if a.created_at else None,
+            }
+            for a in raw_activities
+        ]
+    except Exception:
+        activities_list = []
+
+    # Derived medical / bhandara from general_permissions
+    medical_perms = [gp for gp in general_permissions if gp.type.lower() == "medical"]
+    bhandara_perms = [gp for gp in general_permissions if gp.type.lower() in ("bandhara", "bhandara")]
+
     output_profile = {
         "user": {
             "id": current_user.id,
@@ -335,6 +379,17 @@ async def get_profile(
             "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
             "last_login": current_user.last_login.isoformat() if current_user.last_login else None,
         },
+        "statistics": {
+            "darshan": len(bookings),
+            "donations": len(donations),
+            "stays": len(acc_bookings),
+            "bhandara": len(bhandara_bookings) + len(bhandara_perms),
+            "medical": len(medical_perms),
+            "vehicles": len(vehicles),
+            "sos": len(sos_alerts),
+            "lostFound": len(lost_items) + len(lost_persons),
+        },
+        "activities": activities_list,
         "bookings": [
             {
                 "id": b.id,
@@ -390,7 +445,36 @@ async def get_profile(
             }
             for s in sos_alerts
         ],
-        "bhandara_bookings": [] # we'll populate below
+        "bhandara_bookings": [],  # we'll populate below
+        "lost_items": [
+            {
+                "id": li.id,
+                "category": li.category,
+                "date_lost": li.date_lost.isoformat() if li.date_lost else None,
+                "location": li.location,
+                "description": li.description,
+                "contact_name": li.contact_name,
+                "contact_phone": li.contact_phone,
+                "status": li.status,
+                "created_at": li.created_at.isoformat() if li.created_at else None,
+            }
+            for li in lost_items
+        ],
+        "lost_persons": [
+            {
+                "id": lp.id,
+                "name": lp.name,
+                "age": lp.age,
+                "gender": lp.gender,
+                "last_seen_location": lp.last_seen_location,
+                "last_seen_time": lp.last_seen_time.isoformat() if lp.last_seen_time else None,
+                "contact_name": lp.contact_name,
+                "contact_phone": lp.contact_phone,
+                "status": lp.status,
+                "created_at": lp.created_at.isoformat() if lp.created_at else None,
+            }
+            for lp in lost_persons
+        ],
     }
 
     # Fetch spot names and fill Bhandara bookings

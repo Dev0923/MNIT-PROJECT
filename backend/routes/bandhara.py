@@ -13,6 +13,7 @@ from sqlalchemy.future import select
 from database import get_db
 from models.sql_models import BhandaraSpot, BhandaraBooking, User
 from utils.jwt_handler import get_current_user, get_optional_current_user
+from utils.activity_logger import log_user_activity
 
 router = APIRouter(prefix="/api/bhandara", tags=["Bhandara Bookings"])
 
@@ -300,6 +301,16 @@ async def create_bhandara_booking(
     )
 
     db.add(booking)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="Bhandara",
+            title="Booked Bhandara Slot",
+            description=f"Requested slot for {expected_meals} meals"
+        )
+        
     await db.commit()
     await db.refresh(booking)
 

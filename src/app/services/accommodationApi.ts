@@ -112,7 +112,7 @@ export const accommodationApi = {
   },
 
   createBooking: async (bookingData: BookingRequest): Promise<BookingResponse> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
@@ -133,7 +133,7 @@ export const accommodationApi = {
   },
 
   getMyBookings: async (): Promise<MyBookingResponse[]> => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
     const headers: Record<string, string> = {};
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;

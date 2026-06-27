@@ -5,9 +5,15 @@ WebSocket-based real-time alert system.
 - /api/v1/alerts/send — POST endpoint for admin to broadcast a message
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from pydantic import BaseModel
 from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from models.sql_models import SOSAlert, User
+from utils.jwt_handler import get_current_user
+from database import get_db
+from utils.activity_logger import log_user_activity
 
 router = APIRouter(prefix="/api/v1/alerts", tags=["alerts"])
 
@@ -123,6 +129,17 @@ async def activate_sos(
         created_at=datetime.utcnow()
     )
     db.add(new_sos)
+    
+    if current_user:
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            activity_type="SOS",
+            title="Submitted SOS Request",
+            description=f"Distress signal from lat {payload.latitude}, lon {payload.longitude}"
+        )
+        
+    await db.commit()
     
     # Broadcast to admin clients via WebSockets
     try:

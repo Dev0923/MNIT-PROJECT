@@ -4,7 +4,8 @@ import {
   Ticket, HandCoins, Building2, Car,
   LogOut, Loader2, IndianRupee, MapPin, BadgeCheck,
   AlertCircle, CheckCircle2, Timer, RefreshCw,
-  ShieldAlert, Utensils, Activity
+  ShieldAlert, Utensils, Activity, Search, Package,
+  FileText, Siren, Hash
 } from "lucide-react";
 
 const C = {
@@ -23,7 +24,7 @@ const C = {
 
 const API_BASE = "http://localhost:8000";
 
-type Tab = "overview" | "bookings" | "donations" | "accommodation" | "vehicles" | "sos" | "bhandara" | "medical";
+type Tab = "overview" | "bookings" | "donations" | "accommodation" | "vehicles" | "sos" | "bhandara" | "medical" | "lost_found";
 
 interface ProfileData {
   user: {
@@ -36,6 +37,23 @@ interface ProfileData {
     created_at: string | null;
     last_login: string | null;
   };
+  statistics: {
+    darshan: number;
+    donations: number;
+    stays: number;
+    bhandara: number;
+    medical: number;
+    vehicles: number;
+    sos: number;
+    lostFound: number;
+  };
+  activities: Array<{
+    id: number;
+    activity_type: string;
+    title: string;
+    description: string | null;
+    created_at: string | null;
+  }>;
   bookings: Array<{
     id: number;
     booking_id: string;
@@ -113,6 +131,29 @@ interface ProfileData {
     subtype: string;
     purpose: string;
     date: string;
+    status: string;
+    created_at: string | null;
+  }>;
+  lost_items: Array<{
+    id: number;
+    category: string;
+    date_lost: string | null;
+    location: string;
+    description: string | null;
+    contact_name: string;
+    contact_phone: string;
+    status: string;
+    created_at: string | null;
+  }>;
+  lost_persons: Array<{
+    id: number;
+    name: string;
+    age: number;
+    gender: string | null;
+    last_seen_location: string;
+    last_seen_time: string | null;
+    contact_name: string;
+    contact_phone: string;
     status: string;
     created_at: string | null;
   }>;
@@ -210,12 +251,19 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
     fetch(`${API_BASE}/api/auth/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load profile");
+      .then(async (r) => {
+        if (!r.ok) {
+          const errText = await r.text().catch(() => "");
+          console.error(`Profile API Error (${r.status}):`, errText);
+          throw new Error(`Server returned ${r.status}`);
+        }
         return r.json();
       })
       .then((data) => setProfileData(data))
-      .catch((err) => setError(err.message || "Could not load profile"))
+      .catch((err) => {
+        console.error("Profile Fetch Exception:", err);
+        setError(err.message || "Could not load profile");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -454,6 +502,12 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
       icon: <Activity size={14} />,
       count: profileData?.general_permissions.filter(gp => gp.type.toLowerCase() === "medical").length,
     },
+    {
+      key: "lost_found",
+      label: "Lost & Found",
+      icon: <Search size={14} />,
+      count: (profileData?.lost_items.length ?? 0) + (profileData?.lost_persons.length ?? 0),
+    },
   ];
 
   return (
@@ -554,30 +608,64 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
             <div className="grid grid-cols-4 gap-2 mt-4">
               {[
                 {
-                  label: "Bookings",
-                  val: profileData.bookings.length,
+                  label: "Darshan",
+                  val: profileData.statistics?.darshan ?? profileData.bookings.length,
                   color: "#60a5fa",
+                  tab: "bookings" as Tab,
                 },
                 {
                   label: "Donations",
-                  val: profileData.donations.length,
+                  val: profileData.statistics?.donations ?? profileData.donations.length,
                   color: "#34d399",
+                  tab: "donations" as Tab,
                 },
                 {
                   label: "Stays",
-                  val: profileData.accommodation_bookings.length,
+                  val: profileData.statistics?.stays ?? profileData.accommodation_bookings.length,
                   color: "#f472b6",
+                  tab: "accommodation" as Tab,
+                },
+                {
+                  label: "Bhandara",
+                  val: profileData.statistics?.bhandara ?? (profileData.bhandara_bookings.length + profileData.general_permissions.filter(gp => gp.type.toLowerCase() === "bandhara").length),
+                  color: "#fb923c",
+                  tab: "bhandara" as Tab,
+                },
+                {
+                  label: "Medical",
+                  val: profileData.statistics?.medical ?? profileData.general_permissions.filter(gp => gp.type.toLowerCase() === "medical").length,
+                  color: "#a78bfa",
+                  tab: "medical" as Tab,
                 },
                 {
                   label: "Vehicles",
-                  val: profileData.vehicles.length,
+                  val: profileData.statistics?.vehicles ?? profileData.vehicles.length,
                   color: C.orange,
+                  tab: "vehicles" as Tab,
+                },
+                {
+                  label: "SOS",
+                  val: profileData.statistics?.sos ?? profileData.sos_alerts.length,
+                  color: "#f87171",
+                  tab: "sos" as Tab,
+                },
+                {
+                  label: "Lost/Found",
+                  val: profileData.statistics?.lostFound ?? (profileData.lost_items.length + profileData.lost_persons.length),
+                  color: "#facc15",
+                  tab: "lost_found" as Tab,
                 },
               ].map((item) => (
-                <div
+                <button
                   key={item.label}
-                  className="rounded-xl p-2 text-center"
-                  style={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                  onClick={() => setActiveTab(item.tab)}
+                  className="rounded-xl p-2 text-center transition-all hover:scale-105 active:scale-95"
+                  style={{
+                    backgroundColor: activeTab === item.tab ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.08)",
+                    cursor: "pointer",
+                    border: activeTab === item.tab ? `1px solid ${item.color}55` : "1px solid transparent",
+                  }}
+                  title={`View ${item.label} history`}
                 >
                   <div
                     className="text-lg font-bold"
@@ -587,11 +675,11 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                   </div>
                   <div
                     className="text-[9px] font-medium"
-                    style={{ color: "rgba(255,255,255,0.5)" }}
+                    style={{ color: activeTab === item.tab ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.5)" }}
                   >
                     {item.label}
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -795,6 +883,54 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                         ))}
                     </SectionCard>
                   )}
+
+                  {/* Recent Activity Timeline */}
+                  <SectionCard
+                    title="Recent Activity"
+                    icon={<Activity size={14} color={C.orange} />}
+                  >
+                    {(!profileData.activities || profileData.activities.length === 0) ? (
+                      <div className="flex flex-col items-center py-4 gap-2" style={{ color: C.muted }}>
+                        <Activity size={22} />
+                        <p className="text-xs">No activity recorded yet. Start booking a service!</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-0">
+                        {profileData.activities.slice(0, 10).map((act, i) => {
+                          const typeColors: Record<string, string> = {
+                            "Darshan Booking": "#60a5fa",
+                            "Donation": "#34d399",
+                            "Accommodation": "#f472b6",
+                            "Bhandara": "#fb923c",
+                            "Permission": "#a78bfa",
+                            "Vehicle Registration": C.orange,
+                            "Vehicle Permit": C.orange,
+                            "SOS": "#f87171",
+                            "Lost Item": "#facc15",
+                            "Lost Person": "#facc15",
+                          };
+                          const dotColor = typeColors[act.activity_type] || C.muted;
+                          return (
+                            <div key={act.id} className="flex gap-3 py-2 border-b last:border-0" style={{ borderColor: C.border }}>
+                              <div className="flex flex-col items-center gap-1 pt-1">
+                                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: dotColor }} />
+                                {i < (Math.min(profileData.activities.length, 10) - 1) && (
+                                  <div className="w-px flex-1 min-h-[16px]" style={{ backgroundColor: C.border }} />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0 pb-1">
+                                <p className="text-xs font-semibold truncate" style={{ color: C.darkText }}>{act.title}</p>
+                                {act.description && (
+                                  <p className="text-[10px] truncate mt-0.5" style={{ color: C.muted }}>{act.description}</p>
+                                )}
+                                <p className="text-[10px] mt-0.5" style={{ color: C.muted }}>{fmtDateTime(act.created_at)}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </SectionCard>
                 </div>
               )}
 
@@ -1073,7 +1209,7 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                         {v.permits.length === 0 ? (
                           <div className="px-3 py-2">
                             <p className="text-[10px]" style={{ color: C.muted }}>
-                              No permits issued
+                              No parking permits issued
                             </p>
                           </div>
                         ) : (
@@ -1096,7 +1232,7 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                                 className="text-[10px]"
                                 style={{ color: C.muted }}
                               >
-                                {fmtDate(p.valid_from)} → {fmtDate(p.valid_to)}
+                                Valid: {fmtDate(p.valid_from)} → {fmtDate(p.valid_to)}
                               </p>
                               {p.allowed_zones?.length > 0 && (
                                 <p
@@ -1109,6 +1245,487 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                             </div>
                           ))
                         )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* ── SOS TAB ── */}
+              {activeTab === "sos" && (
+                <div className="flex flex-col gap-3">
+                  {/* SOS Action Buttons */}
+                  <div className="rounded-xl overflow-hidden border" style={{ borderColor: "#fecaca" }}>
+                    <div
+                      className="px-4 py-3"
+                      style={{ background: "linear-gradient(135deg, #7f1d1d, #dc2626)" }}
+                    >
+                      <p className="text-white font-bold text-sm flex items-center gap-2">
+                        <Siren size={14} /> Emergency SOS
+                      </p>
+                      <p className="text-red-200 text-[10px] mt-0.5">
+                        Press only in genuine emergency situations
+                      </p>
+                    </div>
+                    <div className="p-3 flex gap-2" style={{ backgroundColor: "#fff5f5" }}>
+                      <button
+                        onClick={handleActivateSOS}
+                        disabled={loading}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+                        style={{ backgroundColor: C.red, boxShadow: "0 2px 8px rgba(220,38,38,0.35)" }}
+                      >
+                        {loading ? <Loader2 size={12} className="animate-spin" /> : <ShieldAlert size={12} />}
+                        Activate SOS
+                      </button>
+                      <button
+                        onClick={handleCancelSOS}
+                        disabled={loading}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-bold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+                        style={{ backgroundColor: "#E5E5E5", color: C.darkText }}
+                      >
+                        <X size={12} /> Cancel SOS
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SOS History */}
+                  <p className="text-[11px] font-bold uppercase tracking-wider px-1" style={{ color: C.muted }}>
+                    Alert History
+                  </p>
+                  {profileData.sos_alerts.length === 0 ? (
+                    <EmptyState icon={<ShieldAlert size={28} />} text="No SOS alerts triggered yet" />
+                  ) : (
+                    profileData.sos_alerts.map((s) => (
+                      <div
+                        key={s.id}
+                        className="rounded-xl p-3 border"
+                        style={{
+                          backgroundColor: C.white,
+                          borderColor: s.status === "Activated" ? C.red : C.border,
+                          boxShadow: s.status === "Activated" ? "0 0 0 1px #dc262630" : "none",
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{
+                                backgroundColor: s.status === "Activated" ? "#FEE2E2" : "#F3F4F6",
+                              }}
+                            >
+                              <Siren
+                                size={14}
+                                color={s.status === "Activated" ? C.red : C.muted}
+                              />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold" style={{ color: C.darkBlue }}>
+                                SOS Alert #{s.id}
+                              </p>
+                              <p className="text-[10px]" style={{ color: C.muted }}>
+                                {fmtDateTime(s.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                          <StatusBadge status={s.status} />
+                        </div>
+                        {(s.latitude || s.longitude) && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <MapPin size={10} color={C.muted} />
+                            <p className="text-[10px]" style={{ color: C.muted }}>
+                              {s.latitude?.toFixed(5)}, {s.longitude?.toFixed(5)}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* ── BHANDARA TAB ── */}
+              {activeTab === "bhandara" && (() => {
+                const spotBookings = profileData.bhandara_bookings;
+                const campPermissions = profileData.general_permissions.filter(
+                  (gp) => gp.type.toLowerCase() === "bandhara"
+                );
+                return (
+                  <div className="flex flex-col gap-3">
+                    {/* Spot Bookings Section */}
+                    <p className="text-[11px] font-bold uppercase tracking-wider px-1" style={{ color: C.muted }}>
+                      Bhandara Spot Bookings
+                    </p>
+                    {spotBookings.length === 0 ? (
+                      <div
+                        className="rounded-xl p-4 text-center"
+                        style={{ backgroundColor: C.bg, border: `1px dashed ${C.border}` }}
+                      >
+                        <Utensils size={22} color={C.border} className="mx-auto mb-1" />
+                        <p className="text-xs" style={{ color: C.muted }}>No Bhandara spot bookings yet</p>
+                      </div>
+                    ) : (
+                      spotBookings.map((bb) => (
+                        <div
+                          key={bb.id}
+                          className="rounded-xl p-3 border"
+                          style={{ backgroundColor: C.white, borderColor: C.border }}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0 pr-2">
+                              <p className="text-xs font-bold truncate" style={{ color: C.darkBlue }}>
+                                {bb.org_name}
+                              </p>
+                              <p className="text-[10px] font-medium mt-0.5" style={{ color: C.orange }}>
+                                {bb.spot_name}
+                              </p>
+                            </div>
+                            <StatusBadge status={bb.status} />
+                          </div>
+                          <div className="flex flex-col gap-1 mb-2">
+                            <InfoRowSmall
+                              icon={<Calendar size={11} />}
+                              label="Start"
+                              value={fmtDateTime(bb.start_time)}
+                            />
+                            <InfoRowSmall
+                              icon={<Calendar size={11} />}
+                              label="End"
+                              value={fmtDateTime(bb.end_time)}
+                            />
+                            <InfoRowSmall
+                              icon={<Clock size={11} />}
+                              label="Duration"
+                              value={`${bb.duration_hours} hrs`}
+                            />
+                            <InfoRowSmall
+                              icon={<Utensils size={11} />}
+                              label="Meals/Day"
+                              value={bb.expected_meals.toLocaleString("en-IN")}
+                            />
+                          </div>
+                          {bb.status === "Pending" && (
+                            <button
+                              onClick={() => handleCancelBhandaraSpot(bb.id)}
+                              disabled={actionLoading === bb.id}
+                              className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all hover:bg-red-50 disabled:opacity-50"
+                              style={{ borderColor: C.red, color: C.red }}
+                            >
+                              {actionLoading === bb.id ? (
+                                <Loader2 size={10} className="animate-spin" />
+                              ) : (
+                                <X size={10} />
+                              )}
+                              Cancel Booking
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+
+                    {/* Camp Permission Applications Section */}
+                    <p className="text-[11px] font-bold uppercase tracking-wider px-1 mt-1" style={{ color: C.muted }}>
+                      Bhandara Camp Applications
+                    </p>
+                    {campPermissions.length === 0 ? (
+                      <div
+                        className="rounded-xl p-4 text-center"
+                        style={{ backgroundColor: C.bg, border: `1px dashed ${C.border}` }}
+                      >
+                        <FileText size={22} color={C.border} className="mx-auto mb-1" />
+                        <p className="text-xs" style={{ color: C.muted }}>No Bhandara camp applications yet</p>
+                      </div>
+                    ) : (
+                      campPermissions.map((gp) => (
+                        <div
+                          key={gp.id}
+                          className="rounded-xl p-3 border"
+                          style={{ backgroundColor: C.white, borderColor: C.border }}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1 min-w-0 pr-2">
+                              <p className="text-xs font-bold truncate" style={{ color: C.darkBlue }}>
+                                {gp.name}
+                              </p>
+                              <p className="text-[10px] font-medium mt-0.5" style={{ color: C.orange }}>
+                                {gp.subtype}
+                              </p>
+                            </div>
+                            <StatusBadge status={gp.status} />
+                          </div>
+                          <div className="flex flex-col gap-1 mb-2">
+                            <InfoRowSmall
+                              icon={<Hash size={11} />}
+                              label="Code"
+                              value={gp.permission_code}
+                            />
+                            <InfoRowSmall
+                              icon={<Calendar size={11} />}
+                              label="Date"
+                              value={gp.date}
+                            />
+                            <InfoRowSmall
+                              icon={<FileText size={11} />}
+                              label="Purpose"
+                              value={gp.purpose}
+                            />
+                          </div>
+                          {(gp.status === "pending" || gp.status === "Pending") && (
+                            <button
+                              onClick={() => handleCancelGeneralPermission(gp.permission_code)}
+                              disabled={actionLoading === gp.permission_code}
+                              className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all hover:bg-red-50 disabled:opacity-50"
+                              style={{ borderColor: C.red, color: C.red }}
+                            >
+                              {actionLoading === gp.permission_code ? (
+                                <Loader2 size={10} className="animate-spin" />
+                              ) : (
+                                <X size={10} />
+                              )}
+                              Cancel Application
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* ── MEDICAL TAB ── */}
+              {activeTab === "medical" && (() => {
+                const medicalPerms = profileData.general_permissions.filter(
+                  (gp) => gp.type.toLowerCase() === "medical"
+                );
+                return (
+                  <div className="flex flex-col gap-2">
+                    {medicalPerms.length === 0 ? (
+                      <EmptyState
+                        icon={<Activity size={28} />}
+                        text="No medical camp applications yet"
+                      />
+                    ) : (
+                      <>
+                        {/* Summary banner */}
+                        <div
+                          className="rounded-xl p-4 text-white"
+                          style={{
+                            background: "linear-gradient(135deg, #6d28d9, #8b5cf6)",
+                            boxShadow: "0 4px 16px rgba(109,40,217,0.25)",
+                          }}
+                        >
+                          <p className="text-[10px] font-semibold opacity-70 uppercase tracking-wider">
+                            Medical Camp Applications
+                          </p>
+                          <p className="text-2xl font-bold mt-1">{medicalPerms.length}</p>
+                          <p className="text-[10px] opacity-70 mt-0.5">
+                            {medicalPerms.filter((p) => p.status === "approved" || p.status === "Approved").length} approved ·{" "}
+                            {medicalPerms.filter((p) => p.status === "pending" || p.status === "Pending").length} pending
+                          </p>
+                        </div>
+
+                        {medicalPerms.map((gp) => (
+                          <div
+                            key={gp.id}
+                            className="rounded-xl p-3 border"
+                            style={{
+                              backgroundColor: C.white,
+                              borderColor:
+                                gp.status === "approved" || gp.status === "Approved"
+                                  ? "#86efac"
+                                  : gp.status === "rejected" || gp.status === "Rejected"
+                                  ? "#fca5a5"
+                                  : C.border,
+                            }}
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1 min-w-0 pr-2">
+                                <p className="text-xs font-bold truncate" style={{ color: C.darkBlue }}>
+                                  {gp.name}
+                                </p>
+                                <p className="text-[10px] font-medium mt-0.5" style={{ color: "#7c3aed" }}>
+                                  {gp.subtype}
+                                </p>
+                              </div>
+                              <StatusBadge status={gp.status} />
+                            </div>
+                            <div className="flex flex-col gap-1 mb-2">
+                              <InfoRowSmall
+                                icon={<Hash size={11} />}
+                                label="Application Code"
+                                value={gp.permission_code}
+                              />
+                              <InfoRowSmall
+                                icon={<Calendar size={11} />}
+                                label="Requested Date"
+                                value={gp.date}
+                              />
+                              <InfoRowSmall
+                                icon={<FileText size={11} />}
+                                label="Purpose"
+                                value={gp.purpose}
+                              />
+                              <InfoRowSmall
+                                icon={<Clock size={11} />}
+                                label="Applied On"
+                                value={fmtDate(gp.created_at)}
+                              />
+                            </div>
+                            {(gp.status === "pending" || gp.status === "Pending") && (
+                              <button
+                                onClick={() => handleCancelGeneralPermission(gp.permission_code)}
+                                disabled={actionLoading === gp.permission_code}
+                                className="w-full flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-semibold border transition-all hover:bg-red-50 disabled:opacity-50"
+                                style={{ borderColor: C.red, color: C.red }}
+                              >
+                                {actionLoading === gp.permission_code ? (
+                                  <Loader2 size={10} className="animate-spin" />
+                                ) : (
+                                  <X size={10} />
+                                )}
+                                Withdraw Application
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* ── LOST & FOUND TAB ── */}
+              {activeTab === "lost_found" && (
+                <div className="flex flex-col gap-3">
+                  {/* Lost Items */}
+                  <p className="text-[11px] font-bold uppercase tracking-wider px-1" style={{ color: C.muted }}>
+                    Lost Item Reports
+                  </p>
+                  {profileData.lost_items.length === 0 ? (
+                    <div
+                      className="rounded-xl p-4 text-center"
+                      style={{ backgroundColor: C.bg, border: `1px dashed ${C.border}` }}
+                    >
+                      <Package size={22} color={C.border} className="mx-auto mb-1" />
+                      <p className="text-xs" style={{ color: C.muted }}>No lost item reports yet</p>
+                    </div>
+                  ) : (
+                    profileData.lost_items.map((li) => (
+                      <div
+                        key={li.id}
+                        className="rounded-xl p-3 border"
+                        style={{
+                          backgroundColor: C.white,
+                          borderColor:
+                            li.status === "Found" || li.status === "Claimed"
+                              ? "#86efac"
+                              : C.border,
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: `${C.orange}15` }}
+                            >
+                              <Package size={14} color={C.orange} />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold" style={{ color: C.darkBlue }}>
+                                {li.category}
+                              </p>
+                              <p className="text-[10px]" style={{ color: C.muted }}>
+                                Lost on {fmtDate(li.date_lost)}
+                              </p>
+                            </div>
+                          </div>
+                          <StatusBadge status={li.status} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <InfoRowSmall
+                            icon={<MapPin size={11} />}
+                            label="Location"
+                            value={li.location}
+                          />
+                          {li.description && (
+                            <InfoRowSmall
+                              icon={<FileText size={11} />}
+                              label="Description"
+                              value={li.description}
+                            />
+                          )}
+                          <InfoRowSmall
+                            icon={<Phone size={11} />}
+                            label="Contact"
+                            value={`${li.contact_name} · ${li.contact_phone}`}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  {/* Lost Persons */}
+                  <p className="text-[11px] font-bold uppercase tracking-wider px-1 mt-1" style={{ color: C.muted }}>
+                    Missing Person Reports
+                  </p>
+                  {profileData.lost_persons.length === 0 ? (
+                    <div
+                      className="rounded-xl p-4 text-center"
+                      style={{ backgroundColor: C.bg, border: `1px dashed ${C.border}` }}
+                    >
+                      <User size={22} color={C.border} className="mx-auto mb-1" />
+                      <p className="text-xs" style={{ color: C.muted }}>No missing person reports yet</p>
+                    </div>
+                  ) : (
+                    profileData.lost_persons.map((lp) => (
+                      <div
+                        key={lp.id}
+                        className="rounded-xl p-3 border"
+                        style={{
+                          backgroundColor: C.white,
+                          borderColor: lp.status === "Found" ? "#86efac" : "#fca5a5",
+                        }}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                              style={{
+                                backgroundColor: lp.status === "Found" ? "#DCFCE7" : "#FEE2E2",
+                              }}
+                            >
+                              <User
+                                size={14}
+                                color={lp.status === "Found" ? "#166534" : C.red}
+                              />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold" style={{ color: C.darkBlue }}>
+                                {lp.name}
+                              </p>
+                              <p className="text-[10px]" style={{ color: C.muted }}>
+                                Age {lp.age}{lp.gender ? ` · ${lp.gender}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <StatusBadge status={lp.status} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <InfoRowSmall
+                            icon={<MapPin size={11} />}
+                            label="Last Seen"
+                            value={lp.last_seen_location}
+                          />
+                          <InfoRowSmall
+                            icon={<Clock size={11} />}
+                            label="Last Seen At"
+                            value={fmtDateTime(lp.last_seen_time)}
+                          />
+                          <InfoRowSmall
+                            icon={<Phone size={11} />}
+                            label="Contact"
+                            value={`${lp.contact_name} · ${lp.contact_phone}`}
+                          />
+                        </div>
                       </div>
                     ))
                   )}

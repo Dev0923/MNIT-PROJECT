@@ -24,9 +24,13 @@ export interface LostPersonData {
 
 export const lostFoundApi = {
   reportLostItem: async (data: LostItemData) => {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const response = await fetch(`${API_URL}/lost-item`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error("Failed to report lost item");
@@ -34,9 +38,13 @@ export const lostFoundApi = {
   },
 
   reportLostPerson: async (data: LostPersonData) => {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const response = await fetch(`${API_URL}/lost-person`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error("Failed to report missing person");
