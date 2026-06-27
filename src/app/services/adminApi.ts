@@ -323,62 +323,6 @@ export async function deleteAnnouncement(id: number): Promise<void> {
   return apiFetch<void>(`/api/admin/announcements/${id}`, { method: "DELETE" });
 }
 
-<<<<<<< HEAD
-// ── Gallery ──────────────────────────────────────────────
-
-export interface GalleryItem {
-  id: number;
-  url: string;
-  title: string;
-  description: string | null;
-  type: string; // "photo" | "video"
-  created_at: string;
-}
-
-export async function getGalleryItems(): Promise<GalleryItem[]> {
-  const res = await fetch(`${BASE_URL}/api/gallery`, {
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!res.ok) throw new Error("Failed to fetch gallery items");
-  return res.json();
-}
-
-export async function uploadGalleryItem(formData: FormData): Promise<GalleryItem> {
-  const res = await fetch(`${BASE_URL}/api/gallery`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${getToken()}` },
-    body: formData,
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || "Failed to upload gallery item");
-  }
-  return res.json();
-}
-
-export async function updateGalleryItem(id: number, formData: FormData): Promise<GalleryItem> {
-  const res = await fetch(`${BASE_URL}/api/gallery/${id}`, {
-    method: "PUT",
-    headers: { Authorization: `Bearer ${getToken()}` },
-    body: formData,
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || "Failed to update gallery item");
-  }
-  return res.json();
-}
-
-export async function deleteGalleryItem(id: number): Promise<void> {
-  const res = await fetch(`${BASE_URL}/api/gallery/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${getToken()}` },
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || "Failed to delete gallery item");
-  }
-=======
 // ── General Permissions ───────────────────────────────────
 
 export interface AdminGeneralPermission {
@@ -404,5 +348,4 @@ export async function updateGeneralPermissionStatus(
     method: "POST",
     body: JSON.stringify({ status }),
   });
->>>>>>> 3f4d545a68f31d7f73b662bacf8f830fca2e65b8
 }

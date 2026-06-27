@@ -274,21 +274,6 @@ class Announcement(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 
-<<<<<<< HEAD
-class GalleryItem(Base):
-    """Admin-managed gallery items (photos/videos)."""
-    __tablename__ = "khatu_gallery_items"
-
-    id = Column(Integer, primary_key=True, index=True)
-    url = Column(String(1000), nullable=False)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    type = Column(String(50), nullable=False)  # "photo" or "video"
-    category = Column(String(100), nullable=True)
-    photographer = Column(String(255), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
-=======
 class AccommodationProperty(Base):
     __tablename__ = "khatu_accommodation_properties"
 
@@ -345,4 +330,3 @@ class AccommodationBooking(Base):
 
     user = relationship("User", back_populates="accommodation_bookings")
     property = relationship("AccommodationProperty", back_populates="bookings")
->>>>>>> 3f4d545a68f31d7f73b662bacf8f830fca2e65b8

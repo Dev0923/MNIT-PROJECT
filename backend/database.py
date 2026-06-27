@@ -205,12 +205,6 @@ async def init_db():
         async with engine.begin() as conn:
             # Create all tables defined on the Base metadata
             await conn.run_sync(Base.metadata.create_all)
-<<<<<<< HEAD
-            # Safe migration: add description column to gallery items if missing
-            await conn.execute(__import__("sqlalchemy").text(
-                "ALTER TABLE khatu_gallery_items ADD COLUMN IF NOT EXISTS description TEXT"
-            ))
-=======
             
             # Dynamically apply migrations for missing columns in existing tables (for Neon compatibility)
             try:
@@ -226,9 +220,8 @@ async def init_db():
             except Exception as ex:
                 print(f"[INFO] Migration: Column user_id might already exist on khatu_general_permissions: {ex}")
 
->>>>>>> 3f4d545a68f31d7f73b662bacf8f830fca2e65b8
         print("[OK] PostgreSQL database tables initialized successfully.")
-
+        
         # Seed the data
         await seed_data()
         print("[OK] Seeding completed.")
@@ -236,7 +229,7 @@ async def init_db():
         print(f"[ERROR] Failed to initialize database: {e}")
         print("   The server will start but database operations will fail until connectivity is restored.")
         # Re-raise so the lifespan handler knows startup failed
-        # raise
+        raise
 
 
 async def get_db():
