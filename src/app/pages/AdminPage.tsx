@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
   LayoutDashboard, IndianRupee, Users2, ClipboardList,
@@ -58,21 +58,21 @@ const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
 
 /* ─── Status maps ───────────────────────────────────────── */
 const STATUS_MAP: Record<string, { bg: string; tc: string; dot: string }> = {
-  pending:     { bg: "#FEF9C3", tc: "#854D0E", dot: "#EAB308" },
-  Pending:     { bg: "#FEF9C3", tc: "#854D0E", dot: "#EAB308" },
-  approved:    { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
-  Approved:    { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
-  completed:   { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
-  active:      { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
-  rejected:    { bg: "#FEE2E2", tc: "#991B1B", dot: "#EF4444" },
-  Denied:      { bg: "#FEE2E2", tc: "#991B1B", dot: "#EF4444" },
-  expired:     { bg: "#F3F4F6", tc: "#6B7280", dot: "#9CA3AF" },
-  inactive:    { bg: "#F3F4F6", tc: "#6B7280", dot: "#9CA3AF" },
-  used:        { bg: "#EDE9FE", tc: "#5B21B6", dot: "#8B5CF6" },
-  open:        { bg: "#FEE2E2", tc: "#991B1B", dot: "#EF4444" },
-  resolved:    { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
+  pending: { bg: "#FEF9C3", tc: "#854D0E", dot: "#EAB308" },
+  Pending: { bg: "#FEF9C3", tc: "#854D0E", dot: "#EAB308" },
+  approved: { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
+  Approved: { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
+  completed: { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
+  active: { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
+  rejected: { bg: "#FEE2E2", tc: "#991B1B", dot: "#EF4444" },
+  Denied: { bg: "#FEE2E2", tc: "#991B1B", dot: "#EF4444" },
+  expired: { bg: "#F3F4F6", tc: "#6B7280", dot: "#9CA3AF" },
+  inactive: { bg: "#F3F4F6", tc: "#6B7280", dot: "#9CA3AF" },
+  used: { bg: "#EDE9FE", tc: "#5B21B6", dot: "#8B5CF6" },
+  open: { bg: "#FEE2E2", tc: "#991B1B", dot: "#EF4444" },
+  resolved: { bg: "#DCFCE7", tc: "#166534", dot: "#22C55E" },
   "in-progress": { bg: "#DBEAFE", tc: "#1D4ED8", dot: "#3B82F6" },
-  new:         { bg: "#DBEAFE", tc: "#1D4ED8", dot: "#3B82F6" },
+  new: { bg: "#DBEAFE", tc: "#1D4ED8", dot: "#3B82F6" },
 };
 
 /* ─── Tiny helpers ──────────────────────────────────────── */
@@ -989,7 +989,7 @@ function LiveStatus() {
             <img src={activeCam.img} alt={activeCam.label} className="w-full h-full object-cover opacity-85" />
             <div className="absolute inset-0 pointer-events-none">
               {[["top-2 left-2", "border-t-2 border-l-2"], ["top-2 right-2", "border-t-2 border-r-2"],
-                ["bottom-2 left-2", "border-b-2 border-l-2"], ["bottom-2 right-2", "border-b-2 border-r-2"]].map(([pos, brd], i) => (
+              ["bottom-2 left-2", "border-b-2 border-l-2"], ["bottom-2 right-2", "border-b-2 border-r-2"]].map(([pos, brd], i) => (
                 <div key={i} className={`absolute ${pos} w-5 h-5 ${brd}`} style={{ borderColor: "rgba(247,148,29,0.8)" }} />
               ))}
               <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded" style={{ backgroundColor: "rgba(220,38,38,0.88)" }}>
@@ -1138,49 +1138,6 @@ function LiveStatus() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SECTION: GALLERY (unchanged)
-═══════════════════════════════════════════════════════════ */
-const GALLERY_THUMBS = [
-  { url: "https://images.unsplash.com/photo-1768731764777-de5860f41126?w=400&q=70", title: "Sacred Shikhara", type: "photo" },
-  { url: "https://images.unsplash.com/photo-1605302977545-3a09913be1dd?w=400&q=70", title: "Sacred Diya", type: "photo" },
-  { url: "https://images.unsplash.com/photo-1767278608250-e87182850006?w=400&q=70", title: "Festival by River", type: "photo" },
-  { url: "https://images.unsplash.com/photo-1636227597176-c554bcbee419?w=400&q=70", title: "Evening Diyas", type: "photo" },
-  { url: "https://images.unsplash.com/photo-1616787671779-eed71117a65e?w=400&q=70", title: "Hands Raised", type: "photo" },
-  { url: "https://images.unsplash.com/photo-1684049348966-e947c61152cd?w=400&q=70", title: "Bhajan Sandhya", type: "video" },
-];
-
-function Gallery() {
-  return (
-    <div>
-      <Head title="Gallery Management" sub="Upload, organise and remove temple photos and videos."
-        right={<button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white" style={{ backgroundColor: C.darkBlue }}><Plus size={13} />Upload Media</button>} />
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {GALLERY_THUMBS.map((item, i) => (
-          <div key={i} className="group relative rounded-xl overflow-hidden bg-gray-100" style={{ border: `1px solid ${C.border}`, aspectRatio: "4/3" }}>
-            <img src={item.url} alt={item.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3"
-              style={{ background: "linear-gradient(to top,rgba(0,0,0,0.75) 0%,transparent 55%)" }}>
-              <div className="flex justify-end gap-1.5">
-                <button className="p-1.5 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.9)", color: C.orange }}><Edit2 size={12} /></button>
-                <button className="p-1.5 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.9)", color: C.red }}><Trash2 size={12} /></button>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white"
-                  style={{ backgroundColor: item.type === "video" ? C.pink : C.orange }}>{item.type}</span>
-                <p className="text-white text-xs font-semibold mt-1">{item.title}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-        <button className="rounded-xl flex flex-col items-center justify-center gap-2 transition-all hover:border-orange-400"
-          style={{ border: `2px dashed ${C.border}`, aspectRatio: "4/3" }}>
-          <Plus size={22} color={C.border} /><span className="text-xs font-semibold" style={{ color: C.muted }}>Upload</span>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════
    SECTION: ANNOUNCEMENTS — backend-wired
@@ -1278,9 +1235,9 @@ function Announcements() {
   }
 
   const SEV_CFG = {
-    info:     { color: C.darkBlue, label: "ℹ️  Info",     desc: "General information" },
-    warning:  { color: C.orange,   label: "⚠️  Warning",  desc: "Important notice" },
-    critical: { color: C.red,      label: "🚨 Critical",  desc: "Urgent / emergency" },
+    info: { color: C.darkBlue, label: "ℹ️  Info", desc: "General information" },
+    warning: { color: C.orange, label: "⚠️  Warning", desc: "Important notice" },
+    critical: { color: C.red, label: "🚨 Critical", desc: "Urgent / emergency" },
   };
 
   return (
@@ -1434,6 +1391,426 @@ function Announcements() {
   );
 }
 
+function Gallery() {
+  const [items, setItems] = useState<api.GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle");
+  const [uploadError, setUploadError] = useState("");
+  const [uploadedTitle, setUploadedTitle] = useState("");
+  const [type, setType] = useState<"photo" | "video">("photo");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit modal state
+  const [editItem, setEditItem] = useState<api.GalleryItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [editFilePreview, setEditFilePreview] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Delete confirm
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  useEffect(() => { fetchItems(); }, []);
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getGalleryItems();
+      setItems(data);
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
+
+  // ── Upload ────────────────────────────────────────────────
+  const openFilePicker = () => {
+    if (uploading) return;
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    const autoTitle = selectedFile.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+    const autoType = selectedFile.type.startsWith("video/") ? "video" : "photo";
+    setType(autoType);
+    setUploadedTitle(autoTitle);
+    setUploading(true);
+    setUploadStatus("uploading");
+    setUploadError("");
+    setUploadProgress(0);
+
+    const interval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + Math.random() * 15, 90));
+    }, 200);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      formData.append("title", autoTitle);
+      formData.append("type", autoType);
+      await api.uploadGalleryItem(formData);
+      clearInterval(interval);
+      setUploadProgress(100);
+      setUploadStatus("success");
+      e.target.value = "";
+      await fetchItems();
+      setTimeout(() => { setUploadStatus("idle"); setUploadProgress(0); setUploadedTitle(""); }, 2500);
+    } catch (err: unknown) {
+      clearInterval(interval);
+      setUploadProgress(0);
+      setUploadStatus("error");
+      setUploadError((err as Error).message || "Upload failed. Please try again.");
+      e.target.value = "";
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // ── Edit ──────────────────────────────────────────────────
+  const openEdit = (item: api.GalleryItem) => {
+    setEditItem(item);
+    setEditTitle(item.title);
+    setEditDescription(item.description ?? "");
+    setEditFile(null);
+    setEditFilePreview(null);
+    setEditError("");
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setEditFile(f);
+    if (f.type.startsWith("image/")) {
+      setEditFilePreview(URL.createObjectURL(f));
+    } else {
+      setEditFilePreview(null);
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editItem) return;
+    if (!editTitle.trim()) { setEditError("Title is required."); return; }
+    setEditSaving(true);
+    setEditError("");
+    try {
+      const formData = new FormData();
+      formData.append("title", editTitle.trim());
+      formData.append("description", editDescription);
+      if (editFile) formData.append("file", editFile);
+      const updated = await api.updateGalleryItem(editItem.id, formData);
+      setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
+      setEditItem(null);
+    } catch (err: unknown) {
+      setEditError((err as Error).message || "Failed to save changes.");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  // ── Delete ────────────────────────────────────────────────
+  const handleDelete = async (id: number) => {
+    try {
+      await api.deleteGalleryItem(id);
+      setItems(prev => prev.filter(i => i.id !== id));
+      setDeleteConfirmId(null);
+    } catch { alert("Failed to delete item."); }
+  };
+
+  const zoneBorder = uploadStatus === "success" ? C.green : uploadStatus === "error" ? C.red : uploading ? C.orange : C.border;
+  const zoneBg = uploadStatus === "success" ? `${C.green}08` : uploadStatus === "error" ? `${C.red}08` : uploading ? `${C.orange}06` : C.bg;
+
+  return (
+    <div>
+      <Head title="Gallery Management" sub="Upload and manage photos and videos shown to devotees." />
+
+      {/* ── Upload Zone ───────────────────────────────────── */}
+      <div className="bg-white rounded-2xl p-5 mb-6" style={{ border: `1px solid ${C.border}` }}>
+        <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: C.muted }}>Upload New Item</p>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={type === "photo" ? "image/*" : "video/*"}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        {uploadStatus === "idle" && (
+          <div className="flex items-center gap-3 mb-3">
+            {(["photo", "video"] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setType(t)}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all"
+                style={{
+                  borderColor: type === t ? C.darkBlue : C.border,
+                  backgroundColor: type === t ? `${C.darkBlue}10` : "white",
+                  color: type === t ? C.darkBlue : C.muted,
+                }}
+              >
+                {t === "photo" ? <Camera size={13} /> : <Monitor size={13} />}
+                {t === "photo" ? "Photo" : "Video"}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div
+          onClick={openFilePicker}
+          className="flex flex-col items-center justify-center gap-3 w-full rounded-xl transition-all"
+          style={{
+            border: `2px dashed ${zoneBorder}`,
+            backgroundColor: zoneBg,
+            padding: "32px 16px",
+            cursor: uploading ? "default" : "pointer",
+          }}
+        >
+          {uploadStatus === "idle" && (
+            <>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.darkBlue}12` }}>
+                <Images size={22} color={C.darkBlue} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-bold" style={{ color: C.text }}>Click here to choose a {type}</p>
+                <p className="text-xs mt-1" style={{ color: C.muted }}>
+                  {type === "photo" ? "JPG, PNG, WEBP, GIF" : "MP4, MOV, AVI, WEBM"} • Uploads automatically
+                </p>
+              </div>
+            </>
+          )}
+
+          {uploadStatus === "uploading" && (
+            <>
+              <Loader2 size={28} className="animate-spin" style={{ color: C.orange }} />
+              <div className="text-center">
+                <p className="text-sm font-bold" style={{ color: C.text }}>Uploading "{uploadedTitle}"…</p>
+                <p className="text-xs mt-1" style={{ color: C.muted }}>Please wait, do not close this page</p>
+              </div>
+              <div className="w-full max-w-xs rounded-full overflow-hidden" style={{ height: 6, backgroundColor: `${C.orange}22` }}>
+                <div className="h-full rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress}%`, background: `linear-gradient(90deg, ${C.orange}, ${C.gold})` }} />
+              </div>
+              <p className="text-xs font-bold" style={{ color: C.orange }}>{Math.round(uploadProgress)}%</p>
+            </>
+          )}
+
+          {uploadStatus === "success" && (
+            <>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.green}15` }}>
+                <CheckCircle2 size={26} color={C.green} />
+              </div>
+              <p className="text-sm font-bold" style={{ color: C.green }}>Uploaded successfully!</p>
+              <p className="text-xs" style={{ color: C.muted }}>Click to upload another file</p>
+            </>
+          )}
+
+          {uploadStatus === "error" && (
+            <>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: `${C.red}12` }}>
+                <XCircle size={26} color={C.red} />
+              </div>
+              <p className="text-sm font-bold" style={{ color: C.red }}>Upload failed</p>
+              <p className="text-xs text-center max-w-xs" style={{ color: C.muted }}>{uploadError}</p>
+              <p className="text-xs font-semibold" style={{ color: C.red }}>Click to try again</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Gallery Grid ─────────────────────────────────── */}
+      {loading ? (
+        <LoadingSpinner msg="Loading gallery..." />
+      ) : items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3" style={{ color: C.muted }}>
+          <Images size={40} color={C.border} />
+          <p className="text-sm">No items in gallery yet. Upload your first photo or video above.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {items.map(item => (
+            <div key={item.id} className="bg-white rounded-xl overflow-hidden flex flex-col group transition-all hover:shadow-md"
+              style={{ border: `1px solid ${C.border}` }}>
+              {/* Media preview */}
+              <div className="relative overflow-hidden" style={{ height: 160, backgroundColor: "#f3f4f6" }}>
+                {item.type === "photo" ? (
+                  <img
+                    src={`http://localhost:8000${item.url}`}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <video src={`http://localhost:8000${item.url}`} className="w-full h-full object-cover" />
+                )}
+                {/* Type badge */}
+                <div className="absolute top-2 left-2 text-white text-[10px] px-2 py-0.5 rounded-full uppercase font-bold"
+                  style={{ backgroundColor: item.type === "photo" ? `${C.darkBlue}cc` : `${C.orange}cc` }}>
+                  {item.type}
+                </div>
+                {/* Hover action buttons */}
+                <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ backgroundColor: "rgba(0,0,0,0.45)" }}>
+                  <button
+                    onClick={() => openEdit(item)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:scale-105"
+                    style={{ backgroundColor: C.darkBlue }}
+                    title="Edit item"
+                  >
+                    <Edit2 size={12} /> Edit
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(item.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:scale-105"
+                    style={{ backgroundColor: C.red }}
+                    title="Delete item"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>
+              </div>
+
+              {/* Card info + action buttons */}
+              <div className="p-3 flex-1 flex flex-col gap-1">
+                <p className="text-xs font-bold truncate" style={{ color: C.text }} title={item.title}>{item.title}</p>
+                {item.description && (
+                  <p className="text-[11px] leading-snug line-clamp-2" style={{ color: C.muted }}>{item.description}</p>
+                )}
+                <p className="text-[10px] mt-auto pt-1" style={{ color: C.muted }}>{fmtDate(item.created_at)}</p>
+                <div className="flex gap-1.5 mt-2">
+                  <button
+                    onClick={() => openEdit(item)}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-bold transition-all hover:opacity-80"
+                    style={{ backgroundColor: `${C.darkBlue}12`, color: C.darkBlue }}
+                  >
+                    <Edit2 size={11} /> Edit
+                  </button>
+                  <button
+                    onClick={() => setDeleteConfirmId(item.id)}
+                    className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] font-bold transition-all hover:opacity-80"
+                    style={{ backgroundColor: `${C.red}10`, color: C.red }}
+                  >
+                    <Trash2 size={11} /> Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Edit Modal ───────────────────────────────────── */}
+      {editItem && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl mx-4" style={{ border: `1px solid ${C.border}` }}>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="font-bold text-sm" style={{ color: C.text }}>Edit Gallery Item</p>
+                <p className="text-[11px] mt-0.5" style={{ color: C.muted }}>Update title, description, or replace the {editItem.type}</p>
+              </div>
+              <button onClick={() => setEditItem(null)}><X size={18} color={C.muted} /></button>
+            </div>
+
+            {/* Current preview */}
+            <div className="mb-4 rounded-xl overflow-hidden" style={{ height: 160, backgroundColor: "#f3f4f6" }}>
+              {editFilePreview ? (
+                <img src={editFilePreview} alt="New preview" className="w-full h-full object-cover" />
+              ) : editItem.type === "photo" ? (
+                <img src={`http://localhost:8000${editItem.url}`} alt={editItem.title} className="w-full h-full object-cover" />
+              ) : (
+                <video src={`http://localhost:8000${editItem.url}`} className="w-full h-full object-cover" />
+              )}
+            </div>
+
+            {/* Replace file */}
+            <input ref={editFileInputRef} type="file" accept={editItem.type === "photo" ? "image/*" : "video/*"}
+              onChange={handleEditFileChange} className="hidden" />
+            <button
+              onClick={() => editFileInputRef.current?.click()}
+              className="w-full py-2 rounded-xl text-xs font-bold mb-4 flex items-center justify-center gap-1.5 transition-all hover:opacity-80"
+              style={{ backgroundColor: C.bg, color: C.muted, border: `1.5px dashed ${C.border}` }}
+            >
+              {editFile ? <><CheckCircle2 size={13} color={C.green} /><span style={{ color: C.green }}>New file selected: {editFile.name}</span></> : <><Camera size={13} />Click to replace {editItem.type}</>}
+            </button>
+
+            {/* Title */}
+            <div className="mb-3">
+              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1" style={{ color: C.muted }}>Title *</label>
+              <input
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-xs outline-none"
+                style={{ border: `1.5px solid ${C.border}`, color: C.text, backgroundColor: C.cream }}
+                placeholder="e.g. Temple view during Phool Bangla"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="mb-4">
+              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1" style={{ color: C.muted }}>Description</label>
+              <textarea
+                value={editDescription}
+                onChange={e => setEditDescription(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2.5 rounded-xl text-xs outline-none resize-none"
+                style={{ border: `1.5px solid ${C.border}`, color: C.text, backgroundColor: C.cream }}
+                placeholder="Optional caption shown below the image in the gallery…"
+              />
+            </div>
+
+            {editError && (
+              <p className="text-xs mb-3 flex items-center gap-1.5" style={{ color: C.red }}>
+                <AlertCircle size={13} />{editError}
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <button onClick={handleEditSave} disabled={editSaving}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ backgroundColor: editSaving ? "#999" : C.green }}>
+                {editSaving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
+                {editSaving ? "Saving…" : "Save Changes"}
+              </button>
+              <button onClick={() => setEditItem(null)}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold"
+                style={{ backgroundColor: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirm Modal ──────────────────────────── */}
+      {deleteConfirmId !== null && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: "rgba(0,0,0,0.55)" }}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl mx-4" style={{ border: `1px solid ${C.border}` }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: `${C.red}12` }}>
+              <Trash2 size={22} color={C.red} />
+            </div>
+            <p className="font-bold text-sm text-center mb-2" style={{ color: C.text }}>Delete this item?</p>
+            <p className="text-xs text-center mb-5" style={{ color: C.muted }}>
+              This will permanently remove the {items.find(i => i.id === deleteConfirmId)?.type ?? "item"} from the gallery and delete the file. This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => handleDelete(deleteConfirmId)}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white"
+                style={{ backgroundColor: C.red }}>Delete</button>
+              <button onClick={() => setDeleteConfirmId(null)}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold"
+                style={{ backgroundColor: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LostFoundSection() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1528,7 +1905,7 @@ export function AdminPage() {
         vehicle: s.pending_permits,
         donations: s.total_donations,
       });
-    }).catch(() => {});
+    }).catch(() => { });
   }, [navigate]);
 
   function logout() {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import Masonry, { ResponsiveMasonry } from "react-responsive-masonry";
 import { ArrowLeft, X, ChevronLeft, ChevronRight, ZoomIn, Images } from "lucide-react";
@@ -52,8 +52,30 @@ export function GalleryPage() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<Category>("All");
   const [lightbox, setLightbox] = useState<number | null>(null);
+  const [backendItems, setBackendItems] = useState<GalleryItem[]>([]);
 
-  const filtered = activeCategory === "All" ? ITEMS : ITEMS.filter(i => i.category === activeCategory);
+  useEffect(() => {
+    fetch("http://localhost:8000/api/gallery")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mapped = data
+            .filter((d: any) => d.type === "photo")
+            .map((d: any) => ({
+              id: d.id + 10000,
+              url: "http://localhost:8000" + d.url,
+              title: d.title,
+              category: "Temple" as Exclude<Category, "All">,
+              photographer: "Admin",
+            }));
+          setBackendItems(mapped);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const allItems = [...backendItems, ...ITEMS];
+  const filtered = activeCategory === "All" ? allItems : allItems.filter(i => i.category === activeCategory);
 
   function openLightbox(id: number) {
     setLightbox(id);

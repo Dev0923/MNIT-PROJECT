@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Video, Play, Clock, Eye } from "lucide-react";
 import logoImg from "../../imports/image-21.png";
@@ -44,8 +44,32 @@ const ALL_TAGS = ["All", ...Array.from(new Set(VIDEOS.map(v => v.tag)))];
 export function GalleryVideosPage() {
   const navigate  = useNavigate();
   const [activeTag, setActiveTag] = useState("All");
+  const [backendVideos, setBackendVideos] = useState<typeof VIDEOS>([]);
 
-  const filtered = activeTag === "All" ? VIDEOS : VIDEOS.filter(v => v.tag === activeTag);
+  useEffect(() => {
+    fetch("http://localhost:8000/api/gallery")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mapped = data
+            .filter((d: any) => d.type === "video")
+            .map((d: any) => ({
+              id: d.id + 10000,
+              title: d.title,
+              duration: "00:00", // Default as we don't have duration from backend
+              views: "0",
+              thumb: "https://images.unsplash.com/photo-1605302977545-3a09913be1dd?auto=format&fit=crop&w=600&q=80", // default thumb
+              tag: "Temple",
+              url: "http://localhost:8000" + d.url, // custom field if we want to play it
+            }));
+          setBackendVideos(mapped);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const allVideos = [...backendVideos, ...VIDEOS];
+  const filtered = activeTag === "All" ? allVideos : allVideos.filter(v => v.tag === activeTag);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: C.cream }}>

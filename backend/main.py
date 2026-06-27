@@ -15,6 +15,8 @@ from routes.auth import router as auth_router
 from routes.admin import router as admin_router
 from routes.lost_found import router as lost_found_router
 from routes.general_permissions import router as general_permissions_router
+from routes.gallery import router as gallery_router
+from fastapi.staticfiles import StaticFiles
 
 
 @asynccontextmanager
@@ -53,6 +55,13 @@ app.include_router(vehicles_router)
 app.include_router(admin_router)
 app.include_router(lost_found_router)
 app.include_router(general_permissions_router)
+app.include_router(gallery_router)
+
+import os
+_BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+_UPLOADS_DIR = os.path.join(_BASE_DIR, "uploads")
+os.makedirs(_UPLOADS_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_UPLOADS_DIR), name="uploads")
 
 @app.get("/health")
 def health() -> dict[str, str]:
