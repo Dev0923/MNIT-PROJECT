@@ -1615,6 +1615,8 @@ function Gallery() {
   const [editItem, setEditItem] = useState<api.GalleryItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("Temple");
+  const [editPhotographer, setEditPhotographer] = useState("");
   const [editFile, setEditFile] = useState<File | null>(null);
   const [editFilePreview, setEditFilePreview] = useState<string | null>(null);
   const [editSaving, setEditSaving] = useState(false);
@@ -1686,6 +1688,8 @@ function Gallery() {
     setEditItem(item);
     setEditTitle(item.title);
     setEditDescription(item.description ?? "");
+    setEditCategory(item.category ?? "Temple");
+    setEditPhotographer(item.photographer ?? "");
     setEditFile(null);
     setEditFilePreview(null);
     setEditError("");
@@ -1711,6 +1715,8 @@ function Gallery() {
       const formData = new FormData();
       formData.append("title", editTitle.trim());
       formData.append("description", editDescription);
+      formData.append("category", editCategory);
+      formData.append("photographer", editPhotographer);
       if (editFile) formData.append("file", editFile);
       const updated = await api.updateGalleryItem(editItem.id, formData);
       setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
@@ -1955,6 +1961,48 @@ function Gallery() {
                 className="w-full px-3 py-2.5 rounded-xl text-xs outline-none"
                 style={{ border: `1.5px solid ${C.border}`, color: C.text, backgroundColor: C.cream }}
                 placeholder="e.g. Temple view during Phool Bangla"
+              />
+            </div>
+
+            {/* Category / Tag */}
+            <div className="mb-3">
+              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1" style={{ color: C.muted }}>Category / Tag</label>
+              <select
+                value={editCategory}
+                onChange={e => setEditCategory(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-xs outline-none font-semibold"
+                style={{ border: `1.5px solid ${C.border}`, color: C.text, backgroundColor: C.cream }}
+              >
+                {editItem.type === "photo" ? (
+                  <>
+                    <option value="Temple">Temple</option>
+                    <option value="Festivals">Festivals</option>
+                    <option value="Devotees">Devotees</option>
+                    <option value="Aarti & Rituals">Aarti & Rituals</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="Temple">Temple</option>
+                    <option value="Aarti">Aarti</option>
+                    <option value="Festival">Festival</option>
+                    <option value="Bhajan">Bhajan</option>
+                    <option value="Devotees">Devotees</option>
+                    <option value="Seva">Seva</option>
+                    <option value="Ritual">Ritual</option>
+                  </>
+                )}
+              </select>
+            </div>
+
+            {/* Photographer */}
+            <div className="mb-3">
+              <label className="text-[11px] font-bold uppercase tracking-wider block mb-1" style={{ color: C.muted }}>Photographer / Source</label>
+              <input
+                value={editPhotographer}
+                onChange={e => setEditPhotographer(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl text-xs outline-none font-semibold"
+                style={{ border: `1.5px solid ${C.border}`, color: C.text, backgroundColor: C.cream }}
+                placeholder="e.g. Temple Trust, Admin, Devotee name"
               />
             </div>
 

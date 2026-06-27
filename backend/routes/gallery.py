@@ -26,6 +26,8 @@ class GalleryItemResponse(BaseModel):
     title: str
     description: Optional[str] = None
     type: str
+    category: Optional[str] = None
+    photographer: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -46,6 +48,8 @@ async def upload_gallery_item(
     title: str = Form(...),
     type: str = Form(...),          # "photo" or "video"
     description: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    photographer: Optional[str] = Form(None),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     admin_user: User = Depends(get_admin_user),
@@ -68,6 +72,8 @@ async def upload_gallery_item(
         title=title,
         type=type,
         description=description,
+        category=category,
+        photographer=photographer,
         url=item_url,
     )
     db.add(db_item)
@@ -82,6 +88,8 @@ async def update_gallery_item(
     item_id: int,
     title: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    photographer: Optional[str] = Form(None),
     file: Optional[UploadFile] = File(None),
     db: AsyncSession = Depends(get_db),
     admin_user: User = Depends(get_admin_user),
@@ -98,6 +106,12 @@ async def update_gallery_item(
     # Allow description to be set to empty string (clear it) or a new value
     if description is not None:
         item.description = description if description.strip() else None
+
+    if category is not None:
+        item.category = category if category.strip() else None
+
+    if photographer is not None:
+        item.photographer = photographer if photographer.strip() else None
 
     # Replace file if a new one was provided
     if file and file.filename:

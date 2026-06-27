@@ -59,7 +59,7 @@ export function GalleryVideosPage() {
               duration: "00:00", // Default as we don't have duration from backend
               views: "0",
               thumb: "https://images.unsplash.com/photo-1605302977545-3a09913be1dd?auto=format&fit=crop&w=600&q=80", // default thumb
-              tag: "Temple",
+              tag: d.category || "Temple",
               url: "http://localhost:8000" + d.url, // custom field if we want to play it
             }));
           setBackendVideos(mapped);

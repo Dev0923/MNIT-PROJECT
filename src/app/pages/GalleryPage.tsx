@@ -65,8 +65,8 @@ export function GalleryPage() {
               id: d.id + 10000,
               url: "http://localhost:8000" + d.url,
               title: d.title,
-              category: "Temple" as Exclude<Category, "All">,
-              photographer: "Admin",
+              category: (d.category || "Temple") as Exclude<Category, "All">,
+              photographer: d.photographer || "Admin",
             }));
           setBackendItems(mapped);
         }
