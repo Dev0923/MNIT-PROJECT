@@ -16,9 +16,14 @@ from routes.admin import router as admin_router
 from routes.lost_found import router as lost_found_router
 from routes.general_permissions import router as general_permissions_router
 from routes.accommodation import router as accommodation_router
+from routes.cameras import router as cameras_router
+from camera.manager import CameraManager
+from ai.service import AIService
+from routes.inference import router as inference_router
+from routes.video_analysis import router as video_analysis_router
 from routes.gallery import router as gallery_router
 from fastapi.staticfiles import StaticFiles
-
+import os
 
 
 @asynccontextmanager
@@ -26,7 +31,21 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     # Create PostgreSQL tables on startup if they don't exist
     await init_db()
+    
+    # Initialize camera worker threads
+    CameraManager().initialize()
+    
+    # Initialize AI density estimation service (loads LWCC Bay model once)
+    AIService().initialize()
+    
     yield
+    
+    # Shutdown AI sampling thread before stopping cameras
+    AIService().shutdown()
+    
+    # Shutdown camera worker threads
+    CameraManager().shutdown()
+
 
 
 app = FastAPI(
@@ -58,14 +77,24 @@ app.include_router(admin_router)
 app.include_router(lost_found_router)
 app.include_router(general_permissions_router)
 app.include_router(accommodation_router)
+app.include_router(cameras_router)
+app.include_router(inference_router)
+app.include_router(video_analysis_router)
 app.include_router(gallery_router)
 
-import os
+# Mount general uploads directory (main branch)
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _UPLOADS_DIR = os.path.join(_BASE_DIR, "uploads")
 os.makedirs(_UPLOADS_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=_UPLOADS_DIR), name="uploads")
 
+# Mount video analysis directory to serve processed static files (our branch)
+os.makedirs(os.path.join("backend", "uploads", "video_analysis"), exist_ok=True)
+app.mount(
+    "/api/v1/video-analysis/static",
+    StaticFiles(directory=os.path.join("backend", "uploads", "video_analysis")),
+    name="video_analysis_static"
+)
 
 @app.get("/health")
 def health() -> dict[str, str]:

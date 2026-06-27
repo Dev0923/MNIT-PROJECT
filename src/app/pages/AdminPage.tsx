@@ -9,6 +9,7 @@ import {
   Clock, Car, Stethoscope, Landmark, AlertCircle,
   Monitor, Camera, Maximize2, Wifi, Activity, Send, Signal,
   Users, Save, XCircle, Loader2, ShieldCheck,
+  UploadCloud, Play, Pause, RotateCcw, AlertTriangle,
 } from "lucide-react";
 import logoImg from "../../imports/image-21.png";
 import * as api from "../services/adminApi";
@@ -38,7 +39,7 @@ const C = {
 /* ─── data types ────────────────────────────────────────── */
 type Section =
   | "dashboard" | "donations" | "vehicle" | "permissions" | "epass"
-  | "livestatus" | "gallery" | "announcements" | "support" | "reports"
+  | "livestatus" | "videoanalysis" | "gallery" | "announcements" | "support" | "reports"
   | "users" | "lostfound";
 
 /* ─── sidebar nav ───────────────────────────────────────── */
@@ -50,6 +51,7 @@ const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "vehicle", label: "Vehicle Permits", icon: <Car size={16} /> },
   { id: "permissions", label: "Permissions", icon: <ClipboardList size={16} /> },
   { id: "livestatus", label: "Live Status", icon: <Radio size={16} /> },
+  { id: "videoanalysis", label: "AI Video Analysis", icon: <Monitor size={16} /> },
   { id: "gallery", label: "Gallery", icon: <Images size={16} /> },
   { id: "announcements", label: "Announcements", icon: <Megaphone size={16} /> },
   { id: "support", label: "Support", icon: <MessageCircle size={16} /> },
@@ -1151,24 +1153,65 @@ function LiveStatus() {
   const [crowd, setCrowd] = useState("Moderate");
   const [wait, setWait] = useState("45");
   const [parking, setParking] = useState("Available");
-  const [counts, setCounts] = useState(CAMERAS.map(c => c.count));
+  const [inferenceMap, setInferenceMap] = useState<Record<string, number>>({});
   const [liveTime, setLiveTime] = useState(new Date());
   const [smartMsg, setSmartMsg] = useState("");
   const [screenMode, setScreenMode] = useState<"crowd" | "wait" | "both" | "custom">("both");
   const [broadcast, setBroadcast] = useState(false);
   const [broadcastDone, setBroadcastDone] = useState(false);
+  const [cameras, setCameras] = useState(CAMERAS);
+  const [viewMode, setViewMode] = useState<"camera" | "overlay" | "heatmap">("camera");
 
   useEffect(() => {
-    const t = setInterval(() => {
-      setCounts(prev => prev.map(n => Math.max(0, n + Math.floor((Math.random() - 0.4) * 8))));
-      setLiveTime(new Date());
-    }, 3000);
-    return () => clearInterval(t);
+    const fetchCameraStatuses = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/cameras");
+        if (res.ok) {
+          const data = await res.json();
+          setCameras(prev => prev.map(c => {
+            const found = data.find((d: any) => d.id === c.id);
+            return found ? { ...c, status: found.status } : c;
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch camera statuses:", err);
+      }
+    };
+
+    fetchCameraStatuses();
+    const statusInterval = setInterval(fetchCameraStatuses, 5000);
+    return () => clearInterval(statusInterval);
   }, []);
 
-  const totalCount = counts.reduce((a, b) => a + b, 0);
-  const activeCam = CAMERAS.find(c => c.id === selCam) ?? CAMERAS[0];
-  const selCount = counts[CAMERAS.findIndex(c => c.id === selCam)];
+  // ── Live AI inference polling (replaces mock random mutation) ──────────────
+  useEffect(() => {
+    const fetchInference = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/api/v1/inference");
+        if (res.ok) {
+          const data: { camera_id: string; crowd_count: number }[] = await res.json();
+          setInferenceMap(
+            Object.fromEntries(data.map(r => [r.camera_id, r.crowd_count]))
+          );
+        }
+      } catch {
+        // Inference service unreachable — keep last known values displayed
+      }
+    };
+    fetchInference();
+    const id = setInterval(fetchInference, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  // ── Clock tick (independent of inference polling) ─────────────────────────
+  useEffect(() => {
+    const id = setInterval(() => setLiveTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const totalCount = Object.values(inferenceMap).reduce((a, b) => a + b, 0);
+  const activeCam = cameras.find(c => c.id === selCam) ?? cameras[0];
+  const selCount = inferenceMap[selCam];
   const crowdCfg = CROWD_CONFIG[crowd] ?? CROWD_CONFIG["Moderate"];
 
   function doBroadcast() {
@@ -1189,13 +1232,40 @@ function LiveStatus() {
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: C.red }} />LIVE
             </span>
           </div>
+          {/* Professional CCTV analytics display mode selector */}
+          <div className="flex items-center gap-1 border rounded-lg p-0.5 bg-white" style={{ borderColor: C.border }}>
+            {(["camera", "overlay", "heatmap"] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className="px-2.5 py-1 text-[10px] font-extrabold uppercase rounded transition-colors"
+                style={{
+                  backgroundColor: viewMode === mode ? C.darkBlue : "transparent",
+                  color: viewMode === mode ? C.white : C.muted,
+                }}
+              >
+                {mode === "camera" ? "Camera Only" : mode === "overlay" ? "Overlay" : "Density Map"}
+              </button>
+            ))}
+          </div>
           <p className="text-[11px] font-mono" style={{ color: C.muted }}>
             {liveTime.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </p>
         </div>
         <div className="grid lg:grid-cols-3 gap-0">
           <div className="lg:col-span-2 relative" style={{ aspectRatio: "16/9", backgroundColor: "#0a0a0a", minHeight: 220 }}>
-            <img src={activeCam.img} alt={activeCam.label} className="w-full h-full object-cover opacity-85" />
+            <img 
+              src={activeCam.status === "offline" || activeCam.status === "error" || activeCam.status === "not_configured"
+                ? activeCam.img 
+                : viewMode === "overlay"
+                  ? `http://localhost:8000/api/v1/cameras/${activeCam.id}/overlay`
+                  : viewMode === "heatmap"
+                    ? `http://localhost:8000/api/v1/cameras/${activeCam.id}/heatmap`
+                    : `http://localhost:8000/api/v1/cameras/${activeCam.id}/stream`
+              } 
+              alt={activeCam.label} 
+              className="w-full h-full object-cover opacity-85" 
+            />
             <div className="absolute inset-0 pointer-events-none">
               {[["top-2 left-2", "border-t-2 border-l-2"], ["top-2 right-2", "border-t-2 border-r-2"],
               ["bottom-2 left-2", "border-b-2 border-l-2"], ["bottom-2 right-2", "border-b-2 border-r-2"]].map(([pos, brd], i) => (
@@ -1208,29 +1278,46 @@ function LiveStatus() {
               <div className="absolute bottom-0 left-0 right-0 px-4 py-3" style={{ background: "linear-gradient(to top,rgba(0,0,0,0.80) 0%,transparent 100%)" }}>
                 <p className="text-white text-xs font-bold">{activeCam.label}</p>
                 <span className="text-[10px] flex items-center gap-1" style={{ color: "rgba(255,255,255,0.7)" }}>
-                  <Activity size={10} color={C.orange} />AI Count: <strong className="text-white ml-1">{selCount?.toLocaleString()} people</strong>
+                  <Activity size={10} color={C.orange} />AI Count:{" "}
+                  <strong className="text-white ml-1">
+                    {selCount !== undefined ? `${Math.round(selCount).toLocaleString()} people` : "—"}
+                  </strong>
                 </span>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-1 border-l" style={{ borderColor: C.border }}>
-            {CAMERAS.map((cam, i) => (
+            {cameras.map((cam, i) => (
               <button key={cam.id} onClick={() => setSelCam(cam.id)}
                 className="relative overflow-hidden transition-all"
                 style={{ aspectRatio: "16/9", borderBottom: `1px solid ${C.border}`, outline: selCam === cam.id ? `2px solid ${C.orange}` : "none", outlineOffset: "-2px" }}>
-                <img src={cam.img} alt={cam.label} className="w-full h-full object-cover"
-                  style={{ filter: cam.status === "offline" ? "grayscale(1) brightness(0.4)" : selCam === cam.id ? "brightness(1)" : "brightness(0.6)" }} />
+                <img
+                  src={
+                    cam.status === "offline" || cam.status === "error" || cam.status === "not_configured"
+                      ? cam.img
+                      : `http://localhost:8000/api/v1/cameras/${cam.id}/snapshot?t=${liveTime.getTime()}`
+                  }
+                  alt={cam.label}
+                  className="w-full h-full object-cover"
+                  style={{ filter: cam.status === "offline" || cam.status === "error" || cam.status === "not_configured" ? "grayscale(1) brightness(0.4)" : selCam === cam.id ? "brightness(1)" : "brightness(0.6)" }}
+                />
                 <div className="absolute inset-0 px-1.5 py-1 flex flex-col justify-between">
                   <div className="flex items-center justify-between">
                     <span className="text-[9px] font-bold px-1 py-0.5 rounded"
-                      style={{ backgroundColor: cam.status === "offline" ? "rgba(0,0,0,0.7)" : "rgba(220,38,38,0.85)", color: "white" }}>
-                      {cam.status === "offline" ? "OFF" : "● LIVE"}
+                      style={{ backgroundColor: cam.status === "offline" || cam.status === "error" || cam.status === "not_configured" ? "rgba(0,0,0,0.7)" : "rgba(220,38,38,0.85)", color: "white" }}>
+                      {cam.status === "offline" || cam.status === "error" || cam.status === "not_configured" ? "OFF" : "● LIVE"}
                     </span>
                     <span className="text-[9px] font-bold" style={{ backgroundColor: "rgba(0,0,0,0.6)", color: "white", padding: "1px 4px", borderRadius: 3 }}>{cam.id}</span>
                   </div>
                   <div style={{ background: "linear-gradient(to top,rgba(0,0,0,0.75),transparent)", padding: "4px 4px 2px" }}>
                     <p className="text-white text-[9px] font-bold leading-tight truncate">{cam.label}</p>
-                    {cam.status === "online" && <p className="text-[9px]" style={{ color: C.orange }}>{counts[i]} ppl</p>}
+                    {cam.status !== "offline" && cam.status !== "error" && (
+                      <p className="text-[9px]" style={{ color: C.orange }}>
+                        {inferenceMap[cam.id] !== undefined
+                          ? `${Math.round(inferenceMap[cam.id])} ppl`
+                          : "—"}
+                      </p>
+                    )}
                   </div>
                 </div>
               </button>
@@ -1327,7 +1414,7 @@ function LiveStatus() {
               )}
               {screenMode === "custom" && <p className="text-base font-extrabold text-white px-4">{smartMsg || "Enter a message above…"}</p>}
               <p className="text-[9px] mt-3" style={{ color: "rgba(255,255,255,0.35)" }}>
-                AI Count: {totalCount.toLocaleString()} people · Parking: {parking}
+                AI Count: {Math.round(totalCount).toLocaleString()} people · Parking: {parking}
               </p>
             </div>
             <div className="flex items-center justify-center py-1.5" style={{ backgroundColor: "#1a1a1a" }}>
@@ -1347,6 +1434,457 @@ function LiveStatus() {
   );
 }
 
+/* ═══════════════════════════════════════════════════════════
+   SECTION: AI VIDEO ANALYSIS
+   ═══════════════════════════════════════════════════════════ */
+function VideoAnalysis() {
+  const [file, setFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [mode, setMode] = useState<"overlay" | "density" | "side-by-side">("overlay");
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+  const [currentFrame, setCurrentFrame] = useState<number>(0);
+  const [totalFrames, setTotalFrames] = useState<number>(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [eta, setEta] = useState<number>(0);
+  const [processingFps, setProcessingFps] = useState<number>(0);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [results, setResults] = useState<any>(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Poll status endpoint
+  useEffect(() => {
+    if (!taskId || status === "completed" || status === "failed" || status === "cancelled") {
+      return;
+    }
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/api/v1/video-analysis/status/${taskId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setStatus(data.status);
+          setProgress(data.progress || 0);
+          setCurrentFrame(data.current_frame || 0);
+          setTotalFrames(data.total_frames || 0);
+          setElapsedTime(data.elapsed_time || 0);
+          setEta(data.eta || 0);
+          setProcessingFps(data.fps || 0);
+          setErrorMessage(data.error_message || "");
+          if (data.status === "completed") {
+            setResults(data.results);
+          }
+        }
+      } catch (err) {
+        console.error("Error polling task status:", err);
+      }
+    }, 1000);
+
+    return () => clearInterval(pollInterval);
+  }, [taskId, status]);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const selectedFile = e.dataTransfer.files[0];
+      const ext = selectedFile.name.split('.').pop()?.toLowerCase();
+      if (ext && ["mp4", "avi", "mov", "mkv"].includes(ext)) {
+        setFile(selectedFile);
+      } else {
+        alert("Please upload a valid video file (.mp4, .avi, .mov, .mkv)");
+      }
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
+  const startAnalysis = async () => {
+    if (!file) return;
+    setUploading(true);
+    setErrorMessage("");
+    setResults(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("mode", mode);
+
+    try {
+      const res = await fetch("http://localhost:8000/api/v1/video-analysis/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setTaskId(data.task_id);
+        setStatus(data.status);
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.detail || "Failed to initiate video analysis.");
+        setStatus("failed");
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to connect to the backend server.");
+      setStatus("failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const cancelAnalysis = async () => {
+    if (!taskId) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/video-analysis/cancel/${taskId}`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setStatus("cancelled");
+      }
+    } catch (err) {
+      console.error("Failed to cancel analysis:", err);
+    }
+  };
+
+  const deleteJob = async () => {
+    if (!taskId) return;
+    try {
+      const res = await fetch(`http://localhost:8000/api/v1/video-analysis/jobs/${taskId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        resetState();
+      }
+    } catch (err) {
+      console.error("Failed to delete analysis job:", err);
+    }
+  };
+
+  const resetState = () => {
+    setFile(null);
+    setTaskId(null);
+    setStatus(null);
+    setProgress(0);
+    setCurrentFrame(0);
+    setTotalFrames(0);
+    setElapsedTime(0);
+    setEta(0);
+    setProcessingFps(0);
+    setErrorMessage("");
+    setResults(null);
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <Head title="AI Video Analysis" sub="Offline processing of recorded crowd videos to validate model performance." />
+
+      {!status && (
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Upload panel */}
+          <div className="lg:col-span-2 bg-white rounded-2xl p-6 flex flex-col justify-between" style={{ border: `1px solid ${C.border}` }}>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: C.muted }}>Upload Crowd Video</p>
+              
+              <div
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all min-h-[220px] ${
+                  dragActive ? "border-orange-500 bg-orange-50" : "border-gray-300 hover:border-orange-500"
+                }`}
+                style={{ borderColor: dragActive ? C.orange : undefined }}
+                onClick={() => document.getElementById("file-input")?.click()}
+              >
+                <input
+                  id="file-input"
+                  type="file"
+                  accept=".mp4,.avi,.mov,.mkv"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                
+                <UploadCloud size={48} className="text-gray-400 mb-3" />
+                <p className="text-sm font-semibold text-gray-700">
+                  {file ? file.name : "Drag & drop your video file here"}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Supports MP4, AVI, MOV, MKV files (Max size: 500MB)
+                </p>
+                {file && (
+                  <span className="mt-3 px-3 py-1 rounded-full text-xs font-bold text-white bg-green-500">
+                    File selected ({(file.size / (1024 * 1024)).toFixed(1)} MB)
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                disabled={!file || uploading}
+                onClick={startAnalysis}
+                className="px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2 transition-all disabled:opacity-50"
+                style={{ backgroundColor: file ? C.orange : "#ccc", cursor: file ? "pointer" : "not-allowed" }}
+              >
+                {uploading ? (
+                  <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading...</>
+                ) : (
+                  <><Play size={14} /> Start Analysis</>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Settings panel */}
+          <div className="bg-white rounded-2xl p-6" style={{ border: `1px solid ${C.border}` }}>
+            <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: C.muted }}>Analysis Settings</p>
+            
+            <div className="space-y-4">
+
+
+              <div>
+                <label className="text-[11px] font-semibold text-gray-500 block mb-2">Output Visualization Mode</label>
+                <div className="space-y-2">
+                  {[
+                    { id: "overlay", label: "Overlay Video", desc: "Density heatmap superimposed over original frame" },
+                    { id: "density", label: "Density Map Only", desc: "Pure crowd density map on black backdrop" },
+                    { id: "side-by-side", label: "Side-by-Side Comparison", desc: "Original on left | Overlay on right" }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setMode(opt.id as any)}
+                      className="w-full text-left p-3 rounded-xl border-2 transition-all"
+                      style={{
+                        borderColor: mode === opt.id ? C.orange : C.border,
+                        backgroundColor: mode === opt.id ? "rgba(247,148,29,0.04)" : "transparent"
+                      }}
+                    >
+                      <p className="text-xs font-bold text-gray-800">{opt.label}</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5 leading-normal">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Progress View */}
+      {(status === "pending" || status === "processing") && (
+        <div className="bg-white rounded-2xl p-6" style={{ border: `1px solid ${C.border}` }}>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: C.orange }}>Analysis in progress</p>
+              <h3 className="text-lg font-bold text-gray-800 mt-1">Processing "{file?.name}"</h3>
+            </div>
+            <button
+              onClick={cancelAnalysis}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors border border-red-200"
+            >
+              Cancel Analysis
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {/* Progress bar */}
+            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: C.orange }} />
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gray-50 p-4 rounded-xl border" style={{ borderColor: C.border }}>
+                <p className="text-[10px] uppercase font-bold text-gray-500">Progress</p>
+                <p className="text-xl font-extrabold mt-1 text-gray-800">{progress}%</p>
+                <p className="text-[11px] text-gray-500 mt-1">Frame {currentFrame} / {totalFrames}</p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-xl border" style={{ borderColor: C.border }}>
+                <p className="text-[10px] uppercase font-bold text-gray-500">Elapsed Time</p>
+                <p className="text-xl font-extrabold mt-1 text-gray-800">{formatTime(elapsedTime)}</p>
+                <p className="text-[11px] text-gray-500 mt-1">Total process duration</p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-xl border" style={{ borderColor: C.border }}>
+                <p className="text-[10px] uppercase font-bold text-gray-500">Estimated Remaining (ETA)</p>
+                <p className="text-xl font-extrabold mt-1 text-gray-800">{formatTime(eta)}</p>
+                <p className="text-[11px] text-gray-500 mt-1">Time remaining</p>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-xl border" style={{ borderColor: C.border }}>
+                <p className="text-[10px] uppercase font-bold text-gray-500">Processing Speed</p>
+                <p className="text-xl font-extrabold mt-1 text-gray-800">{processingFps.toFixed(1)} FPS</p>
+                <p className="text-[11px] text-gray-500 mt-1">Frames per second</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Failure View */}
+      {status === "failed" && (
+        <div className="bg-white rounded-2xl p-6" style={{ border: `1px solid ${C.border}` }}>
+          <div className="flex items-center gap-3 text-red-600 mb-4">
+            <AlertTriangle size={24} />
+            <h3 className="text-lg font-bold">Analysis Failed</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-6 bg-red-50 p-4 rounded-xl border border-red-100 font-mono">
+            {errorMessage || "An unexpected error occurred during processing."}
+          </p>
+          <button onClick={resetState} className="px-5 py-2.5 rounded-xl text-xs font-bold text-white" style={{ backgroundColor: C.orange }}>
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {/* Cancelled View */}
+      {status === "cancelled" && (
+        <div className="bg-white rounded-2xl p-6" style={{ border: `1px solid ${C.border}` }}>
+          <div className="flex items-center gap-3 text-amber-600 mb-4">
+            <AlertTriangle size={24} />
+            <h3 className="text-lg font-bold">Analysis Cancelled</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-6 bg-amber-50 p-4 rounded-xl border border-amber-100">
+            The offline analysis process was cancelled by the administrator. Output artifacts have been removed.
+          </p>
+          <button onClick={resetState} className="px-5 py-2.5 rounded-xl text-xs font-bold text-white" style={{ backgroundColor: C.orange }}>
+            Upload Another Video
+          </button>
+        </div>
+      )}
+
+      {/* Results View */}
+      {status === "completed" && results && (
+        <div className="space-y-6">
+          {/* Main layout */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Player */}
+            <div className="lg:col-span-2 bg-white rounded-2xl p-6 flex flex-col justify-between" style={{ border: `1px solid ${C.border}` }}>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: C.muted }}>Processed Output Video</p>
+                <div className="rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center">
+                  <video
+                    controls
+                    className="w-full h-full max-h-[480px] object-contain"
+                    src={`http://localhost:8000/api/v1/video-analysis/static/task_${taskId}/overlay.mp4`}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 pt-4 border-t" style={{ borderColor: C.border }}>
+                <button
+                  onClick={deleteJob}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors border border-red-200 flex items-center gap-1.5"
+                >
+                  <Trash2 size={13} /> Delete Job File
+                </button>
+
+                <div className="flex gap-2">
+                  <a
+                    href={`http://localhost:8000/api/v1/video-analysis/downloads/${taskId}/video`}
+                    download
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all"
+                    style={{ backgroundColor: C.darkBlue }}
+                  >
+                    <Download size={13} /> Download Video
+                  </a>
+                  <a
+                    href={`http://localhost:8000/api/v1/video-analysis/downloads/${taskId}/csv`}
+                    download
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all"
+                    style={{ backgroundColor: C.orange }}
+                  >
+                    <Download size={13} /> Download CSV
+                  </a>
+                  <button
+                    onClick={resetState}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors border border-gray-300 flex items-center gap-1.5"
+                  >
+                    <RotateCcw size={13} /> Run New Video
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Statistics */}
+            <div className="bg-white rounded-2xl p-6 flex flex-col justify-between" style={{ border: `1px solid ${C.border}` }}>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: C.muted }}>Validation Statistics</p>
+                
+                <div className="space-y-4">
+                  <div className="border-b pb-3" style={{ borderColor: C.border }}>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Input Filename</p>
+                    <p className="text-xs font-bold text-gray-800 mt-0.5 truncate">{results.input_filename}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-b pb-3" style={{ borderColor: C.border }}>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Average Count</p>
+                      <p className="text-lg font-extrabold text-orange-500 mt-0.5">{results.average_count} ppl</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Peak Count</p>
+                      <p className="text-lg font-extrabold text-red-600 mt-0.5">{results.maximum_count} ppl</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-b pb-3" style={{ borderColor: C.border }}>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Minimum Count</p>
+                      <p className="text-base font-extrabold text-green-600 mt-0.5">{results.minimum_count} ppl</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Total Frames</p>
+                      <p className="text-base font-extrabold text-gray-800 mt-0.5">{results.frame_count}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-b pb-3" style={{ borderColor: C.border }}>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Video Duration</p>
+                      <p className="text-base font-extrabold text-gray-800 mt-0.5">{formatTime(results.duration)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase">Processing Time</p>
+                      <p className="text-base font-extrabold text-gray-800 mt-0.5">{results.processing_time}s</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Average Processing Speed</p>
+                    <p className="text-lg font-extrabold text-navy-800 mt-0.5" style={{ color: C.navy }}>{results.average_processing_fps} FPS</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ═══════════════════════════════════════════════════════════
    SECTION: ANNOUNCEMENTS — backend-wired
@@ -2173,7 +2711,7 @@ export function AdminPage() {
   const SECTION_TITLE: Record<Section, string> = {
     dashboard: "Dashboard", users: "User Management", donations: "Donations",
     vehicle: "Vehicle Permits", permissions: "Permissions", epass: "E-Pass & Bookings",
-    livestatus: "Live Status", gallery: "Gallery", announcements: "Announcements",
+    livestatus: "Live Status", videoanalysis: "AI Video Analysis", gallery: "Gallery", announcements: "Announcements",
     support: "Support Tickets", reports: "Reports", lostfound: "Lost & Found",
   };
 
@@ -2261,6 +2799,7 @@ export function AdminPage() {
           {section === "permissions" && <Permissions />}
           {section === "epass" && <EPass />}
           {section === "livestatus" && <LiveStatus />}
+          {section === "videoanalysis" && <VideoAnalysis />}
           {section === "gallery" && <Gallery />}
           {section === "announcements" && <Announcements />}
           {section === "support" && <Support />}
