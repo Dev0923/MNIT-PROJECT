@@ -154,7 +154,7 @@ export function Footer() {
                 {[
                   { label: "Live Darshan", path: "/live-darshan" },
                   { label: "How to Reach", path: "/sitemap" },
-                  { label: "Places to Visit", path: "/gallery" },
+                  { label: "Places to Visit", path: "/places-to-visit" },
                   { label: "Parking Locations", path: "/mela-map" },
                   { label: "Medical Camps", path: "/mela-map" },
                   { label: "Lost & Found", path: "/services/lost-and-found" },

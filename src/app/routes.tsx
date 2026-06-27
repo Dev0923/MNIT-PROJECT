@@ -29,6 +29,8 @@ import { ReportLostItemPage } from "./pages/ReportLostItemPage";
 import { MedicalCampPermissionPage } from "./pages/MedicalCampPermissionPage";
 import { AccommodationBookingPage } from "./pages/AccommodationBookingPage";
 import { OtherPermissionsPage } from "./pages/OtherPermissionsPage";
+import { PlacesToVisitPage } from "./pages/PlacesToVisitPage";
+
 
 import { AlertListener } from "./components/AlertListener";
 
@@ -54,7 +56,9 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: HomePage },
       { path: "gallery", Component: GalleryPage },
+      { path: "places-to-visit", Component: PlacesToVisitPage },
       { path: "gallery/videos", Component: GalleryVideosPage },
+
       { path: "gallery/virtual-tour", Component: GalleryVirtualTourPage },
       { path: "sitemap", Component: SiteMapPage },
       { path: "mela-map", Component: MelaMapPage },
