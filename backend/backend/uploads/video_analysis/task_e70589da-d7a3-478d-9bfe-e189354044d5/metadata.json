@@ -1,0 +1,15 @@
+{
+    "task_id": "e70589da-d7a3-478d-9bfe-e189354044d5",
+    "input_filename": "cctv_video.mp4",
+    "model": "Bay (LWCC)",
+    "weights": "SHA",
+    "output_mode": "overlay",
+    "duration": 11.02,
+    "frame_count": 275,
+    "average_count": 100.93,
+    "maximum_count": 141.54,
+    "minimum_count": 74.78,
+    "processing_time": 1743.39,
+    "average_processing_fps": 0.16,
+    "completion_timestamp": 1782621663.828666
+}

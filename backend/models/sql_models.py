@@ -385,3 +385,23 @@ class UserActivity(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class SystemSetting(Base):
+    __tablename__ = "khatu_system_settings"
+
+    setting_key = Column(String(50), primary_key=True)
+    setting_value = Column(String(50), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class GateTicket(Base):
+    __tablename__ = "khatu_tickets"
+
+    ticket_id = Column(String(255), primary_key=True)
+    booking_type = Column(String(50), nullable=False)  # 'online' or 'counter'
+    verification_medium = Column(String(50), nullable=False)  # 'smartphone' or 'paper_slip'
+    status = Column(String(50), default="booked", server_default="booked")  # 'booked', 'entered', 'exited'
+    scanned_at_entry = Column(DateTime(timezone=True), nullable=True)
+    scanned_at_exit = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

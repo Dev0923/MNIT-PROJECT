@@ -245,6 +245,22 @@ async def seed_data():
                 )
                 session.add_all([s1, s2, s3])
 
+            # Seed system settings and gate tickets
+            from models.sql_models import SystemSetting, GateTicket
+            res_settings = await session.execute(select(SystemSetting).filter(SystemSetting.setting_key == "max_capacity"))
+            if not res_settings.scalar_one_or_none():
+                session.add(SystemSetting(setting_key="max_capacity", setting_value="2000"))
+
+            res_tickets = await session.execute(select(GateTicket).limit(1))
+            if not res_tickets.scalar_one_or_none():
+                mock_tickets = [
+                    GateTicket(ticket_id="TKT-90412", booking_type="online", verification_medium="smartphone", status="entered", scanned_at_entry=datetime.now(timezone.utc) - timedelta(minutes=15)),
+                    GateTicket(ticket_id="TKT-89110", booking_type="counter", verification_medium="paper_slip", status="entered", scanned_at_entry=datetime.now(timezone.utc) - timedelta(minutes=20)),
+                    GateTicket(ticket_id="TKT-87421", booking_type="online", verification_medium="smartphone", status="exited", scanned_at_entry=datetime.now(timezone.utc) - timedelta(hours=2), scanned_at_exit=datetime.now(timezone.utc) - timedelta(minutes=5)),
+                    GateTicket(ticket_id="TKT-86300", booking_type="counter", verification_medium="paper_slip", status="exited", scanned_at_entry=datetime.now(timezone.utc) - timedelta(hours=3), scanned_at_exit=datetime.now(timezone.utc) - timedelta(hours=1, minutes=30)),
+                ]
+                session.add_all(mock_tickets)
+
             await session.commit()
         except Exception as e:
             await session.rollback()

@@ -10,9 +10,21 @@ import {
   Monitor, Camera, Maximize2, Wifi, Activity, Send, Signal,
   Users, Save, XCircle, Loader2, ShieldCheck,
   UploadCloud, Play, Pause, RotateCcw, AlertTriangle,
+  ArrowRight, Smartphone, FileText, Globe, Ticket
 } from "lucide-react";
 import logoImg from "../../imports/image-21.png";
 import * as api from "../services/adminApi";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ReferenceLine
+} from "recharts";
 import type {
   AdminUser, AdminDonation, AdminBooking,
   AdminSupportTicket, AdminVehiclePermit, AdminStats, Announcement,
@@ -526,68 +538,753 @@ function Donations() {
    SECTION: E-PASS / BOOKINGS (real API)
 ═══════════════════════════════════════════════════════════ */
 function EPass() {
-  const [bookings, setBookings] = useState<AdminBooking[]>([]);
-  const [q, setQ] = useState("");
+  const [maxCapacity, setMaxCapacity] = useState(2000);
+  const [capacityInput, setCapacityInput] = useState("2000");
+  const [currentInside, setCurrentInside] = useState(0);
+  const [onlineScans, setOnlineScans] = useState(0);
+  const [counterScans, setCounterScans] = useState(0);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [wsConnected, setWsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [savingSettings, setSavingSettings] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true); setError("");
-    try { setBookings(await api.getBookings(q || undefined)); }
-    catch (e: unknown) { setError((e as Error).message); }
-    finally { setLoading(false); }
-  }, [q]);
+  // Search and Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [typeFilter, setTypeFilter] = useState("All");
 
-  useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [load]);
+  // Simulator states
+  const [simTicketId, setSimTicketId] = useState("");
+  const [simBookingType, setSimBookingType] = useState("online");
+  const [simVerificationMedium, setSimVerificationMedium] = useState("smartphone");
+  const [simMessage, setSimMessage] = useState<{ text: string; success: boolean } | null>(null);
+  const [simLoading, setSimLoading] = useState(false);
 
-  const individual = bookings.filter(b => b.booking_type === "individual").length;
-  const group = bookings.filter(b => b.booking_type === "group").length;
+  // View Logs modal state
+  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+
+  const loadInitialData = useCallback(async () => {
+    try {
+      setError("");
+      const res = await fetch("http://localhost:8000/api/gate/dashboard-data");
+      if (!res.ok) throw new Error("Failed to load initial gate dashboard data");
+      const data = await res.json();
+      updateState(data);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const updateState = (data: any) => {
+    setMaxCapacity(data.max_capacity);
+    setCapacityInput(data.max_capacity.toString());
+    setCurrentInside(data.current_inside);
+    setOnlineScans(data.online_scans_today);
+    setCounterScans(data.counter_scans_today);
+    setRecentLogs(data.recent_logs || []);
+    setTrendData(data.trend_data || []);
+  };
+
+  useEffect(() => {
+    loadInitialData();
+
+    // Establish WebSocket Connection
+    const ws = new WebSocket("ws://localhost:8000/api/gate/ws/live-updates");
+
+    ws.onopen = () => {
+      setWsConnected(true);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.event === "initial_state" || message.event === "headcount_update") {
+          updateState(message.data);
+        }
+      } catch (err) {
+        console.error("Error processing websocket message", err);
+      }
+    };
+
+    ws.onclose = () => {
+      setWsConnected(false);
+    };
+
+    ws.onerror = () => {
+      setWsConnected(false);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [loadInitialData]);
+
+  // Handle setting save
+  const handleSaveCapacity = async () => {
+    const val = parseInt(capacityInput, 10);
+    if (isNaN(val) || val <= 0) {
+      alert("Please enter a valid capacity limit.");
+      return;
+    }
+    setSavingSettings(true);
+    try {
+      const res = await fetch("http://localhost:8000/api/gate/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ max_capacity: val })
+      });
+      if (!res.ok) throw new Error("Failed to update capacity limit");
+      const data = await res.json();
+      setMaxCapacity(data.max_capacity);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // Helper date formatting
+  const formatLogDate = (isoString: string | null) => {
+    if (!isoString) return "—";
+    const date = new Date(isoString);
+    const pad = (num: number) => num.toString().padStart(2, "0");
+    const d = pad(date.getDate());
+    const m = pad(date.getMonth() + 1);
+    const y = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = pad(date.getMinutes());
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${d}-${m}-${y} ${pad(hours)}:${minutes} ${ampm}`;
+  };
+
+  // Filter devotee logs
+  const filteredLogs = recentLogs.filter(log => {
+    const matchesSearch = log.ticket_id.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "All" ? true :
+      statusFilter === "Inside" ? log.status === "entered" :
+      log.status === "exited";
+    const matchesType =
+      typeFilter === "All" ? true :
+      log.booking_type.toLowerCase() === typeFilter.toLowerCase();
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  // Calculate scans in last 10 mins (from frontend logs)
+  const getScansLast10Mins = (type: "online" | "counter" | "exit") => {
+    const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+    return recentLogs.filter(log => {
+      if (type === "online") {
+        return log.booking_type === "online" && log.scanned_at_entry && new Date(log.scanned_at_entry) >= tenMinsAgo;
+      } else if (type === "counter") {
+        return log.booking_type === "counter" && log.scanned_at_entry && new Date(log.scanned_at_entry) >= tenMinsAgo;
+      } else {
+        return log.scanned_at_exit && new Date(log.scanned_at_exit) >= tenMinsAgo;
+      }
+    }).length;
+  };
+
+  // Simulating Actions
+  const handleSimulateCreate = async () => {
+    if (!simTicketId.trim()) {
+      setSimMessage({ text: "Ticket ID is required", success: false });
+      return;
+    }
+    setSimLoading(true);
+    setSimMessage(null);
+    try {
+      const res = await fetch("http://localhost:8000/api/gate/create-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ticket_id: simTicketId.trim(),
+          booking_type: simBookingType,
+          verification_medium: simVerificationMedium
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Failed to create ticket");
+      setSimMessage({ text: `Ticket ${data.ticket_id} created successfully!`, success: true });
+    } catch (err: any) {
+      setSimMessage({ text: err.message, success: false });
+    } finally {
+      setSimLoading(false);
+    }
+  };
+
+  const handleSimulateScan = async (action: "entry" | "exit") => {
+    if (!simTicketId.trim()) {
+      setSimMessage({ text: "Ticket ID is required", success: false });
+      return;
+    }
+    setSimLoading(true);
+    setSimMessage(null);
+    try {
+      const endpoint = action === "entry" ? "entry-scan" : "exit-scan";
+      const res = await fetch(`http://localhost:8000/api/gate/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ticket_id: simTicketId.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || `Scan failed: ${res.statusText}`);
+      setSimMessage({
+        text: action === "entry" ? `Entry allowed! Ticket status: entered` : `Exit allowed! Ticket status: exited`,
+        success: true
+      });
+    } catch (err: any) {
+      setSimMessage({ text: err.message, success: false });
+    } finally {
+      setSimLoading(false);
+    }
+  };
+
+  const isCapacityReached = currentInside >= maxCapacity;
+
+  if (loading) return <LoadingSpinner msg="Loading real-time gate controls..." />;
 
   return (
-    <div>
-      <Head title="E-Pass & Darshan Bookings"
-        sub={`${bookings.length} total bookings — ${individual} individual, ${group} group`}
-        right={<button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white"
-          style={{ backgroundColor: C.darkBlue }}><Download size={13} />Export</button>}
-      />
-      {error && <ErrorBanner msg={error} onRetry={load} />}
+    <div className="space-y-6">
+      {/* Header and Connection Status */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b" style={{ borderColor: C.border }}>
+        <div>
+          <h2 className="text-xl font-bold" style={{ color: C.text }}>E-Pass & Booking Operational Dashboard</h2>
+          <p className="text-xs" style={{ color: C.muted }}>Manage gate entry limits, monitor physical merge lanes, and track real-time devotee movements.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {wsConnected ? (
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Live Connected (WS)
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+              <span className="w-2 h-2 rounded-full bg-red-500" />
+              WS Disconnected (Offline)
+            </span>
+          )}
+          <button onClick={loadInitialData} className="p-2 rounded-xl border hover:bg-gray-50 transition-colors" style={{ borderColor: C.border }}>
+            <RefreshCw size={14} className="text-gray-600" />
+          </button>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        {[
-          { label: "Total Bookings", value: bookings.length, color: C.darkBlue },
-          { label: "Individual", value: individual, color: C.green },
-          { label: "Group", value: group, color: C.orange },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 text-center"
-            style={{ border: `1.5px solid ${C.border}`, borderTop: `3px solid ${s.color}` }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: C.muted }}>{s.label}</p>
-            <p className="text-3xl font-extrabold" style={{ color: s.color }}>{s.value}</p>
+      {error && <ErrorBanner msg={error} onRetry={loadInitialData} />}
+
+      {/* Section A: Dynamic Capacity Control & Core Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Capacity Input Card */}
+        <div className="bg-white rounded-2xl p-5 border flex flex-col justify-between shadow-sm" style={{ borderColor: C.border }}>
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>Capacity Control</span>
+              <Save size={16} className="text-blue-600" />
+            </div>
+            <p className="text-[11px] mb-3" style={{ color: C.muted }}>Adjust peak capacity dynamically based on crowd or weather conditions.</p>
           </div>
-        ))}
+          <div className="flex gap-2 items-center">
+            <input
+              type="number"
+              value={capacityInput}
+              onChange={(e) => setCapacityInput(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-xl border outline-none font-semibold text-center"
+              style={{ borderColor: C.border, color: C.text }}
+              placeholder="e.g. 2000"
+            />
+            <button
+              onClick={handleSaveCapacity}
+              disabled={savingSettings}
+              className="px-4 py-2 text-xs font-bold text-white rounded-xl bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {savingSettings ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+
+        {/* Card 1: Live Occupancy */}
+        <div 
+          className="rounded-2xl p-5 border flex flex-col justify-between shadow-sm transition-all duration-300"
+          style={{ 
+            borderColor: isCapacityReached ? C.red : C.border, 
+            backgroundColor: isCapacityReached ? "#FEF2F2" : "#FFFFFF",
+            boxShadow: isCapacityReached ? "0 0 12px rgba(220, 38, 38, 0.15)" : "none"
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <span className={`text-xs font-bold uppercase tracking-wider ${isCapacityReached ? "text-red-700" : ""}`} style={{ color: isCapacityReached ? undefined : C.muted }}>Live Occupancy</span>
+            <Users size={18} className={isCapacityReached ? "text-red-600 animate-bounce" : "text-blue-600"} />
+          </div>
+          <div className="mt-3">
+            <div className="flex items-baseline gap-1">
+              <span className={`text-3xl font-extrabold ${isCapacityReached ? "text-red-600 animate-pulse font-black" : ""}`} style={{ color: isCapacityReached ? undefined : C.text }}>
+                {currentInside}
+              </span>
+              <span className="text-sm font-semibold" style={{ color: C.muted }}>/ {maxCapacity}</span>
+            </div>
+            {isCapacityReached ? (
+              <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-black uppercase text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+                <AlertCircle size={10} /> TEMPLE FULL · HOLD ENTRY
+              </span>
+            ) : (
+              <p className="text-[10px] mt-2 font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full inline-block">
+                🟢 Space Available ({(100 - (currentInside / maxCapacity) * 100).toFixed(0)}%)
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Card 2: Online Scans Today */}
+        <div className="bg-white rounded-2xl p-5 border flex flex-col justify-between shadow-sm" style={{ borderColor: C.border }}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>Online Scans Today</span>
+            <Globe size={18} className="text-emerald-600" />
+          </div>
+          <div className="mt-3">
+            <p className="text-3xl font-extrabold" style={{ color: C.text }}>{onlineScans}</p>
+            <span className="inline-flex items-center gap-0.5 mt-2 text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+              🌐 Phone QR Lane Flow
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Counter Scans Today */}
+        <div className="bg-white rounded-2xl p-5 border flex flex-col justify-between shadow-sm" style={{ borderColor: C.border }}>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: C.muted }}>Counter Scans Today</span>
+            <FileText size={18} className="text-amber-600" />
+          </div>
+          <div className="mt-3">
+            <p className="text-3xl font-extrabold" style={{ color: C.text }}>{counterScans}</p>
+            <span className="inline-flex items-center gap-0.5 mt-2 text-[10px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+              🏪 Paper Slip Lane Flow
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
-        <SearchBar value={q} onChange={setQ} ph="Search by booking ID, phone, or city…" />
+      {/* Simulator Section & Gate Scanner Health */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Simulator Control Panel (interactive & convenient for testing) */}
+        <div className="bg-white rounded-2xl p-5 border shadow-sm space-y-4" style={{ borderColor: C.border }}>
+          <div>
+            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: C.text }}>
+              <Ticket size={16} className="text-indigo-600" />
+              Interactive Gate Simulator
+            </h3>
+            <p className="text-[11px]" style={{ color: C.muted }}>Create mock tickets and test entry/exit locks instantly.</p>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            <div>
+              <label className="text-[10px] font-bold text-gray-500 uppercase">Ticket ID</label>
+              <div className="flex gap-1.5 mt-1">
+                <input
+                  type="text"
+                  value={simTicketId}
+                  onChange={(e) => setSimTicketId(e.target.value)}
+                  placeholder="e.g. TKT-999"
+                  className="flex-1 px-3 py-1.5 text-xs rounded-xl border outline-none font-mono"
+                  style={{ borderColor: C.border }}
+                />
+                <button
+                  onClick={() => setSimTicketId("TKT-" + Math.floor(10000 + Math.random() * 90000))}
+                  className="px-2.5 py-1.5 text-[10px] font-bold border border-dashed rounded-xl hover:bg-gray-50 text-indigo-600"
+                  style={{ borderColor: C.border }}
+                >
+                  Gen ID
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Type</label>
+                <select
+                  value={simBookingType}
+                  onChange={(e) => {
+                    setSimBookingType(e.target.value);
+                    setSimVerificationMedium(e.target.value === "online" ? "smartphone" : "paper_slip");
+                  }}
+                  className="w-full mt-1 px-2.5 py-1.5 text-xs rounded-xl border outline-none"
+                  style={{ borderColor: C.border }}
+                >
+                  <option value="online">Online</option>
+                  <option value="counter">Counter</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-gray-500 uppercase">Verification</label>
+                <select
+                  value={simVerificationMedium}
+                  onChange={(e) => setSimVerificationMedium(e.target.value)}
+                  className="w-full mt-1 px-2.5 py-1.5 text-xs rounded-xl border outline-none"
+                  style={{ borderColor: C.border }}
+                >
+                  <option value="smartphone">Smartphone</option>
+                  <option value="paper_slip">Paper Slip</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 pt-2">
+              <button
+                onClick={handleSimulateCreate}
+                disabled={simLoading}
+                className="px-2 py-2 text-[10px] font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors disabled:opacity-50"
+              >
+                1. Book
+              </button>
+              <button
+                onClick={() => handleSimulateScan("entry")}
+                disabled={simLoading}
+                className="px-2 py-2 text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50"
+              >
+                2. Entry Scan
+              </button>
+              <button
+                onClick={() => handleSimulateScan("exit")}
+                disabled={simLoading}
+                className="px-2 py-2 text-[10px] font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors disabled:opacity-50"
+              >
+                3. Exit Scan
+              </button>
+            </div>
+
+            {simMessage && (
+              <div 
+                className={`p-2.5 rounded-xl border text-[11px] font-semibold ${simMessage.success ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"}`}
+              >
+                {simMessage.text}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Section B: Live Gate Activity Table */}
+        <div className="bg-white rounded-2xl p-5 border shadow-sm lg:col-span-2" style={{ borderColor: C.border }}>
+          <div className="mb-4">
+            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: C.text }}>
+              <Activity size={16} className="text-emerald-600" />
+              Live Gate Activity (Scanner Monitors)
+            </h3>
+            <p className="text-[11px]" style={{ color: C.muted }}>Real-time health status, cumulative throughput, and short-term scan rates.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b" style={{ borderColor: C.border }}>
+                  <th className="py-2 text-left font-bold text-gray-500 uppercase tracking-wider">Gate Section</th>
+                  <th className="py-2 text-left font-bold text-gray-500 uppercase tracking-wider">Scanner ID</th>
+                  <th className="py-2 text-left font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="py-2 text-right font-bold text-gray-500 uppercase tracking-wider">Total Scans Today</th>
+                  <th className="py-2 text-right font-bold text-gray-500 uppercase tracking-wider">Scans Last 10 Mins</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor: C.border }}>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-3 font-semibold text-gray-700">Online Entry Lane</td>
+                  <td className="py-3 font-mono text-gray-600">Scanner #1 (Phone QR)</td>
+                  <td className="py-3">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200">
+                      🟢 Active
+                    </span>
+                  </td>
+                  <td className="py-3 text-right font-bold text-gray-800">{onlineScans}</td>
+                  <td className="py-3 text-right font-bold text-indigo-600 bg-indigo-50/50 px-2 rounded">{getScansLast10Mins("online")}</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-3 font-semibold text-gray-700">Counter Entry Lane</td>
+                  <td className="py-3 font-mono text-gray-600">Scanner #2 (Paper QR)</td>
+                  <td className="py-3">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200">
+                      🟢 Active
+                    </span>
+                  </td>
+                  <td className="py-3 text-right font-bold text-gray-800">{counterScans}</td>
+                  <td className="py-3 text-right font-bold text-indigo-600 bg-indigo-50/50 px-2 rounded">{getScansLast10Mins("counter")}</td>
+                </tr>
+                <tr className="hover:bg-gray-50">
+                  <td className="py-3 font-semibold text-gray-700">Main Exit Gate</td>
+                  <td className="py-3 font-mono text-gray-600">Scanner #3 (Combined)</td>
+                  <td className="py-3">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 border border-green-200">
+                      🟢 Active
+                    </span>
+                  </td>
+                  <td className="py-3 text-right font-bold text-gray-800">{recentLogs.filter(l => l.status === "exited").length}</td>
+                  <td className="py-3 text-right font-bold text-indigo-600 bg-indigo-50/50 px-2 rounded">{getScansLast10Mins("exit")}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      {loading ? <LoadingSpinner /> : (
-        <Table
-          cols={["Booking ID", "Type", "Visit Date", "Phone", "City", "Booked On"]}
-          rows={bookings.map(b => [
-            <span className="font-mono font-semibold" style={{ color: C.darkBlue }}>{b.booking_id}</span>,
-            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold"
-              style={{ backgroundColor: b.booking_type === "group" ? `${C.orange}15` : `${C.darkBlue}12`, color: b.booking_type === "group" ? C.orange : C.darkBlue }}>
-              {b.booking_type}
-            </span>,
-            <span style={{ color: C.text }}>{fmtDate(b.date)}</span>,
-            <span style={{ color: C.muted }}>{b.phone}</span>,
-            <span style={{ color: C.muted }}>{b.city}</span>,
-            <span style={{ color: C.muted }}>{fmtDate(b.created_at)}</span>,
-          ])}
-        />
-      )}
-      {!loading && bookings.length === 0 && (
-        <p className="text-center text-xs py-12" style={{ color: C.muted }}>No bookings found.</p>
+      {/* Section C: Live Devotee Traffic Log Table */}
+      <div className="bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border }}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: C.text }}>
+              <Users2 size={16} className="text-blue-600" />
+              Live Devotee Traffic Log
+            </h3>
+            <p className="text-[11px]" style={{ color: C.muted }}>List of devotees passing through entry/exit scanning points. Auto-slides new scans at top.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gray-50 border text-xs" style={{ borderColor: C.border }}>
+              <Search size={12} className="text-gray-500" />
+              <input 
+                type="text" 
+                placeholder="Search Ticket ID..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="outline-none bg-transparent w-32"
+              />
+            </div>
+            
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-2.5 py-1.5 rounded-xl border text-xs bg-gray-50"
+              style={{ borderColor: C.border }}
+            >
+              <option value="All">All Statuses</option>
+              <option value="Inside">Inside</option>
+              <option value="Exited">Exited</option>
+            </select>
+
+            {/* Type Filter */}
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="px-2.5 py-1.5 rounded-xl border text-xs bg-gray-50"
+              style={{ borderColor: C.border }}
+            >
+              <option value="All">All Types</option>
+              <option value="Online">Online</option>
+              <option value="Counter">Counter</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b" style={{ borderColor: C.border }}>
+                <th className="py-2 text-left font-bold text-gray-500 uppercase">Ticket ID</th>
+                <th className="py-2 text-left font-bold text-gray-500 uppercase">Booking Type</th>
+                <th className="py-2 text-left font-bold text-gray-500 uppercase">Media Type</th>
+                <th className="py-2 text-left font-bold text-gray-500 uppercase">Current Status</th>
+                <th className="py-2 text-left font-bold text-gray-500 uppercase">Entry Timestamp</th>
+                <th className="py-2 text-left font-bold text-gray-500 uppercase">Exit Timestamp</th>
+                <th className="py-2 text-center font-bold text-gray-500 uppercase">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor: C.border }}>
+              {filteredLogs.length > 0 ? (
+                filteredLogs.map(log => (
+                  <tr key={log.ticket_id} className="hover:bg-gray-50 animate-fade-in transition-all">
+                    <td className="py-3 font-mono font-bold text-blue-900">{log.ticket_id}</td>
+                    <td className="py-3">
+                      {log.booking_type === "online" ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700">
+                          <Globe size={11} /> Online
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                          <FileText size={11} /> Counter
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3">
+                      {log.verification_medium === "smartphone" ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-gray-600">
+                          <Smartphone size={11} /> Smartphone
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-gray-600">
+                          <FileText size={11} /> Paper Slip
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3">
+                      {log.status === "entered" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-green-50 text-green-700 border border-green-200">
+                          🟢 INSIDE
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 border border-gray-200">
+                          ⚪ EXITED
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 text-gray-700">{formatLogDate(log.scanned_at_entry)}</td>
+                    <td className="py-3 text-gray-700">{formatLogDate(log.scanned_at_exit)}</td>
+                    <td className="py-3 text-center">
+                      <button 
+                        onClick={() => setSelectedLog(log)}
+                        className="px-2.5 py-1 text-[10px] font-bold rounded-lg border text-blue-700 hover:bg-blue-50 transition-colors"
+                        style={{ borderColor: C.border }}
+                      >
+                        View Logs
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-gray-500 font-medium">
+                    No matching gate scanner traffic logs found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Section D: Total Occupancy Trend Graph */}
+      <div className="bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border }}>
+        <div className="mb-4">
+          <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ color: C.text }}>
+            <BarChart2 size={16} className="text-indigo-600" />
+            Total Occupancy Trend Graph (Today)
+          </h3>
+          <p className="text-[11px]" style={{ color: C.muted }}>Hourly crowd count trend compared against the custom Max Capacity limit line (6:00 AM - 9:00 PM).</p>
+        </div>
+        <div className="w-full bg-gray-50/50 p-2 rounded-xl border border-dashed" style={{ borderColor: C.border }}>
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+              <XAxis dataKey="time" tick={{ fontSize: 9, fill: "#6B7280" }} />
+              <YAxis tick={{ fontSize: 10, fill: "#6B7280" }} />
+              <Tooltip 
+                contentStyle={{ borderRadius: '12px', borderColor: C.border, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }} 
+                labelStyle={{ fontWeight: 'bold', fontSize: 11, color: C.text }}
+                itemStyle={{ fontSize: 11, color: '#1F2F8C' }}
+              />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Line 
+                type="monotone" 
+                dataKey="count" 
+                name="Headcount Inside" 
+                stroke="#1F2F8C" 
+                strokeWidth={3} 
+                dot={{ stroke: '#1F2F8C', strokeWidth: 1, r: 3 }}
+                activeDot={{ r: 6 }} 
+              />
+              <ReferenceLine 
+                y={maxCapacity} 
+                stroke="#DC2626" 
+                strokeWidth={2} 
+                strokeDasharray="4 4" 
+                label={{ 
+                  value: `Limit: ${maxCapacity}`, 
+                  position: 'insideBottomRight', 
+                  fill: '#DC2626', 
+                  fontSize: 10, 
+                  fontWeight: 'bold',
+                  offset: 8
+                }} 
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* View Logs Modal */}
+      {selectedLog && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border space-y-4" style={{ borderColor: C.border }}>
+            <div className="flex items-center justify-between border-b pb-3">
+              <h4 className="text-base font-bold text-gray-800 flex items-center gap-1.5">
+                <Ticket size={16} className="text-blue-600" />
+                Audit Logs: {selectedLog.ticket_id}
+              </h4>
+              <button 
+                onClick={() => setSelectedLog(null)} 
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X size={16} className="text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <span className="font-bold text-gray-400 uppercase tracking-wider block">Booking Type</span>
+                  <span className="font-semibold text-gray-700 capitalize">{selectedLog.booking_type}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-gray-400 uppercase tracking-wider block">Verification Medium</span>
+                  <span className="font-semibold text-gray-700 capitalize">{selectedLog.verification_medium.replace('_', ' ')}</span>
+                </div>
+              </div>
+
+              {/* Lifecycle Timeline */}
+              <div className="space-y-3">
+                <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ticket History Lifecycle</h5>
+                <div className="relative pl-6 border-l-2 border-dashed space-y-4" style={{ borderColor: C.border }}>
+                  
+                  {/* Step 1: Created */}
+                  <div className="relative">
+                    <span className="absolute -left-[30px] top-0 w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-500 flex items-center justify-center">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-gray-800">Ticket Booked</p>
+                      <p className="text-[10px] text-gray-500">{formatLogDate(selectedLog.created_at)}</p>
+                    </div>
+                  </div>
+
+                  {/* Step 2: Entered */}
+                  {selectedLog.scanned_at_entry && (
+                    <div className="relative">
+                      <span className="absolute -left-[30px] top-0 w-4 h-4 rounded-full bg-green-100 border-2 border-green-500 flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-gray-800">Scanned Entry ({selectedLog.booking_type === "online" ? "Online Lane" : "Counter Lane"})</p>
+                        <p className="text-[10px] text-gray-500">{formatLogDate(selectedLog.scanned_at_entry)}</p>
+                        <p className="text-[9px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.5 rounded inline-block mt-0.5">Verified on {selectedLog.verification_medium}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 3: Exited */}
+                  {selectedLog.scanned_at_exit && (
+                    <div className="relative">
+                      <span className="absolute -left-[30px] top-0 w-4 h-4 rounded-full bg-gray-200 border-2 border-gray-500 flex items-center justify-center">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-gray-800">Scanned Exit (Combined Exit Gate)</p>
+                        <p className="text-[10px] text-gray-500">{formatLogDate(selectedLog.scanned_at_exit)}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-3 flex justify-end">
+              <button 
+                onClick={() => setSelectedLog(null)}
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
+              >
+                Close Logs
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
