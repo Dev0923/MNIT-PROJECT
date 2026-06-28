@@ -109,6 +109,7 @@ export function Header() {
 
   const PERMISSION_ITEMS = [
     { label: "Vehicle Permission", icon: <Car size={16} color={C.pink} />, slug: "vehicle-permits" },
+    { label: "Parking Availability", icon: <Car size={16} color={C.green} />, path: "/services/parking" },
     { label: "Bandhara Permission", icon: <Landmark size={16} color={C.darkBlue} />, slug: "bandhara-permission" },
     { label: "Medical Camp", icon: <Stethoscope size={16} color="#9333EA" />, slug: "medical-camp" },
     { label: "Other Permissions", icon: <ClipboardList size={16} color={C.orange} />, slug: "other-permissions" },

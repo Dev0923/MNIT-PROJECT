@@ -15,6 +15,7 @@ httpx==0.28.1
 fakeredis==2.27.0
 python-jose[cryptography]==3.4.0
 python-dotenv==1.1.0
+ultralytics
 opencv-python-headless
 lwcc
 numpy

@@ -29,6 +29,7 @@ import { ReportLostItemPage } from "./pages/ReportLostItemPage";
 import { MedicalCampPermissionPage } from "./pages/MedicalCampPermissionPage";
 import { AccommodationBookingPage } from "./pages/AccommodationBookingPage";
 import { OtherPermissionsPage } from "./pages/OtherPermissionsPage";
+import { ParkingPage } from "./pages/ParkingPage";
 import { PlacesToVisitPage } from "./pages/PlacesToVisitPage";
 
 
@@ -83,6 +84,7 @@ export const router = createBrowserRouter([
       { path: "services/lost-and-found/report", Component: ReportLostItemPage },
       { path: "services/accommodation-booking", Component: AccommodationBookingPage },
       { path: "services/other-permissions", Component: OtherPermissionsPage },
+      { path: "services/parking", Component: ParkingPage },
       { path: "services/:slug", Component: ServicePage },
       { path: "*", Component: HomePage },
     ],

@@ -333,6 +333,35 @@ class AccommodationBooking(Base):
     property = relationship("AccommodationProperty", back_populates="bookings")
 
 
+class ParkingLot(Base):
+    """Defines a physical parking zone monitored by a camera."""
+    __tablename__ = "khatu_parking_lots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)  # e.g. "Main Parking Zone A"
+    total_slots = Column(Integer, nullable=False, default=100)  # Total parking capacity
+    camera_url = Column(Text, nullable=True)  # RTSP/HLS/YouTube stream URL (admin-only)
+    location_description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    snapshots = relationship("ParkingSnapshot", back_populates="lot", cascade="all, delete-orphan")
+
+
+class ParkingSnapshot(Base):
+    """AI vehicle detection result for a parking lot at a point in time."""
+    __tablename__ = "khatu_parking_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lot_id = Column(Integer, ForeignKey("khatu_parking_lots.id", ondelete="CASCADE"), nullable=False)
+    occupied_slots = Column(Integer, nullable=False, default=0)  # AI-detected vehicle count
+    available_slots = Column(Integer, nullable=False, default=0)  # Computed: total - occupied
+    confidence_score = Column(Float, nullable=True)  # AI model confidence 0.0–1.0
+    vehicle_boxes = Column(JSONB, nullable=True)  # List of bounding box coords from AI
+    snapshot_image_url = Column(Text, nullable=True)  # Path to stored snapshot image
+    recorded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    lot = relationship("ParkingLot", back_populates="snapshots")
 
 class GalleryItem(Base):
     """Admin-managed gallery items (photos/videos)."""
@@ -355,4 +384,24 @@ class UserActivity(Base):
     activity_type = Column(String(50), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class SystemSetting(Base):
+    __tablename__ = "khatu_system_settings"
+
+    setting_key = Column(String(50), primary_key=True)
+    setting_value = Column(String(50), nullable=False)
+    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class GateTicket(Base):
+    __tablename__ = "khatu_tickets"
+
+    ticket_id = Column(String(255), primary_key=True)
+    booking_type = Column(String(50), nullable=False)  # 'online' or 'counter'
+    verification_medium = Column(String(50), nullable=False)  # 'smartphone' or 'paper_slip'
+    status = Column(String(50), default="booked", server_default="booked")  # 'booked', 'entered', 'exited'
+    scanned_at_entry = Column(DateTime(timezone=True), nullable=True)
+    scanned_at_exit = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

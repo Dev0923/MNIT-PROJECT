@@ -379,6 +379,13 @@ export function HomePage() {
                 desc: t('services.vehicleDesc'),
               },
               {
+                slug: "parking",
+                title: t('services.parkingTitle'),
+                cta: t('services.btnCheck'),
+                img: "https://images.unsplash.com/photo-1506521788701-1e13a7ea3b1c?auto=format&fit=crop&w=600&q=80",
+                desc: t('services.parkingDesc'),
+              },
+              {
                 slug: "darshan-pass",
                 title: t('services.darshanTitle'),
                 cta: t('services.btnBook'),

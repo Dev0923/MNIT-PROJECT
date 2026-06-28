@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from database import init_db
 from routes.bookings import router as bookings_router
@@ -16,6 +18,7 @@ from routes.admin import router as admin_router
 from routes.lost_found import router as lost_found_router
 from routes.general_permissions import router as general_permissions_router
 from routes.accommodation import router as accommodation_router
+from routes.parking import router as parking_router
 from routes.cameras import router as cameras_router
 from camera.manager import CameraManager
 from ai.service import AIService
@@ -23,8 +26,7 @@ from routes.inference import router as inference_router
 from routes.video_analysis import router as video_analysis_router
 from routes.gallery import router as gallery_router
 from routes.chatbot import router as chatbot_router
-from fastapi.staticfiles import StaticFiles
-import os
+from routes.gate import router as gate_router
 
 
 @asynccontextmanager
@@ -78,11 +80,14 @@ app.include_router(admin_router)
 app.include_router(lost_found_router)
 app.include_router(general_permissions_router)
 app.include_router(accommodation_router)
+app.include_router(parking_router)
+
 app.include_router(cameras_router)
 app.include_router(inference_router)
 app.include_router(video_analysis_router)
 app.include_router(gallery_router)
 app.include_router(chatbot_router)
+app.include_router(gate_router)
 
 # Mount general uploads directory (main branch)
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -91,10 +96,11 @@ os.makedirs(_UPLOADS_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=_UPLOADS_DIR), name="uploads")
 
 # Mount video analysis directory to serve processed static files (our branch)
-os.makedirs(os.path.join("backend", "uploads", "video_analysis"), exist_ok=True)
+_VIDEO_ANALYSIS_DIR = os.path.join(_UPLOADS_DIR, "video_analysis")
+os.makedirs(_VIDEO_ANALYSIS_DIR, exist_ok=True)
 app.mount(
     "/api/v1/video-analysis/static",
-    StaticFiles(directory=os.path.join("backend", "uploads", "video_analysis")),
+    StaticFiles(directory=_VIDEO_ANALYSIS_DIR),
     name="video_analysis_static"
 )
 
@@ -102,7 +108,6 @@ app.mount(
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
-from fastapi import WebSocket
 @app.websocket("/wstest")
 async def wstest(ws: WebSocket):
     await ws.accept()

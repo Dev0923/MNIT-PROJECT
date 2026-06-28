@@ -350,6 +350,100 @@ export async function updateGeneralPermissionStatus(
   });
 }
 
+// ── Parking System ────────────────────────────────────────
+
+export interface ParkingLotPublic {
+  id: number;
+  name: string;
+  total_slots: number;
+  location_description: string | null;
+  is_active: boolean;
+  occupied_slots: number;
+  available_slots: number;
+  occupancy_pct: number;
+  last_updated: string | null;
+}
+
+export interface ParkingLotAdmin extends ParkingLotPublic {
+  camera_url: string | null;
+  created_at: string;
+}
+
+export interface ParkingSnapshot {
+  id: number;
+  lot_id: number;
+  occupied_slots: number;
+  available_slots: number;
+  confidence_score: number | null;
+  vehicle_boxes: Array<{
+    x1: number; y1: number; x2: number; y2: number;
+    confidence: number; class: string;
+  }> | null;
+  snapshot_image_url: string | null;
+  recorded_at: string;
+}
+
+export interface ParkingLotCreate {
+  name: string;
+  total_slots: number;
+  camera_url?: string;
+  location_description?: string;
+  is_active?: boolean;
+}
+
+export interface ParkingLotUpdate {
+  name?: string;
+  total_slots?: number;
+  camera_url?: string;
+  location_description?: string;
+  is_active?: boolean;
+}
+
+/** Public — returns slot availability without camera URLs. */
+export async function getParkingAvailability(): Promise<ParkingLotPublic[]> {
+  return apiFetch<ParkingLotPublic[]>("/api/parking/availability", {}, false);
+}
+
+export async function getLotAvailability(lotId: number): Promise<ParkingLotPublic> {
+  return apiFetch<ParkingLotPublic>(`/api/parking/availability/${lotId}`, {}, false);
+}
+
+/** Admin — includes camera_url and full details. */
+export async function getAdminParkingLots(): Promise<ParkingLotAdmin[]> {
+  return apiFetch<ParkingLotAdmin[]>("/api/parking/admin/lots");
+}
+
+export async function createParkingLot(data: ParkingLotCreate): Promise<ParkingLotAdmin> {
+  return apiFetch<ParkingLotAdmin>("/api/parking/admin/lots", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateParkingLot(id: number, data: ParkingLotUpdate): Promise<ParkingLotAdmin> {
+  return apiFetch<ParkingLotAdmin>(`/api/parking/admin/lots/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteParkingLot(id: number): Promise<void> {
+  return apiFetch<void>(`/api/parking/admin/lots/${id}`, { method: "DELETE" });
+}
+
+/** Admin — trigger on-demand AI analysis for a specific lot. */
+export async function triggerParkingAnalysis(lotId: number): Promise<ParkingSnapshot> {
+  return apiFetch<ParkingSnapshot>(`/api/parking/admin/analyze/${lotId}`, {
+    method: "POST",
+  });
+}
+
+/** Admin — fetch detection history for a lot. */
+export async function getParkingSnapshots(lotId: number, limit = 50): Promise<ParkingSnapshot[]> {
+  return apiFetch<ParkingSnapshot[]>(`/api/parking/admin/snapshots/${lotId}?limit=${limit}`);
+}
+
+// ── Gallery System ────────────────────────────────────────
 // ── Gallery ──────────────────────────────────────────────
 
 export interface GalleryItem {

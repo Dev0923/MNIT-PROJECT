@@ -73,6 +73,8 @@
     "yatraDesc": "Plan your complete Khatu Shyam Ji yatra with route maps, travel guides, nearby attractions and suggested itineraries. Get tips on best times to visit, local transport and must-see spots.",
     "crowdTitle": "Live Crowd Status",
     "crowdDesc": "Check real-time crowd density, queue lengths, and estimated darshan wait times to plan your visit. Live feeds directly from the temple's control center.",
+    "parkingTitle": "Live Parking Status",
+    "parkingDesc": "Real-time parking slot availability computed using AI vehicle detection models. Find vacant spaces instantly.",
     "btnApply": "Apply Now",
     "btnRegister": "Register Now",
     "btnBook": "Book Now",
@@ -81,7 +83,8 @@
     "btnDonate": "Donate Now",
     "btnReport": "Report Now",
     "btnPlan": "Plan Now",
-    "btnView": "View Status"
+    "btnView": "View Status",
+    "btnCheck": "Check Availability"
   },
   "cta": {
     "subtitle": "Join Our Community",
