@@ -1,0 +1,15 @@
+{
+    "task_id": "be9e3c76-15b7-4904-a278-ef5659ec82e4",
+    "input_filename": "Video Project 2.mp4",
+    "model": "Bay (LWCC)",
+    "weights": "SHA",
+    "output_mode": "side-by-side",
+    "duration": 2.27,
+    "frame_count": 68,
+    "average_count": 904.14,
+    "maximum_count": 1220.73,
+    "minimum_count": 580.21,
+    "processing_time": 343.75,
+    "average_processing_fps": 0.2,
+    "completion_timestamp": 1782554579.5036764
+}

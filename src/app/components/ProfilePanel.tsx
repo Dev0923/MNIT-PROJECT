@@ -253,6 +253,14 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
     })
       .then(async (r) => {
         if (!r.ok) {
+          if (r.status === 401) {
+            console.warn("Session expired or unauthorized. Logging out.");
+            localStorage.removeItem("token");
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("user");
+            window.location.reload();
+            return;
+          }
           const errText = await r.text().catch(() => "");
           console.error(`Profile API Error (${r.status}):`, errText);
           throw new Error(`Server returned ${r.status}`);

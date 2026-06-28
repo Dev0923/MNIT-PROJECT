@@ -33,6 +33,7 @@ import { PlacesToVisitPage } from "./pages/PlacesToVisitPage";
 
 
 import { AlertListener } from "./components/AlertListener";
+import { ChatbotWidget } from "./components/ChatbotWidget";
 
 function RootLayout() {
   return (
@@ -43,6 +44,7 @@ function RootLayout() {
       </div>
       <Footer />
       <AlertListener />
+      <ChatbotWidget />
     </div>
   );
 }

@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     otp_mode: str = "mock"  # "mock" | "live"
     otp_expiry_minutes: int = 5
 
+    # LLM Chatbot
+    gemini_api_key: str = ""
+
     model_config = {
         "env_file": str(Path(__file__).resolve().parent / ".env"),
         "env_file_encoding": "utf-8",

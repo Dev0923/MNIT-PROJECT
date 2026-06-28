@@ -22,6 +22,7 @@ from ai.service import AIService
 from routes.inference import router as inference_router
 from routes.video_analysis import router as video_analysis_router
 from routes.gallery import router as gallery_router
+from routes.chatbot import router as chatbot_router
 from fastapi.staticfiles import StaticFiles
 import os
 
@@ -81,6 +82,7 @@ app.include_router(cameras_router)
 app.include_router(inference_router)
 app.include_router(video_analysis_router)
 app.include_router(gallery_router)
+app.include_router(chatbot_router)
 
 # Mount general uploads directory (main branch)
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
