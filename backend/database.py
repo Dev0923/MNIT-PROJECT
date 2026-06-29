@@ -55,7 +55,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def seed_data():
     """Seed initial mock records if database tables are empty."""
-    from models.sql_models import Donation, Vehicle, VehiclePermission, SupportQuery, GeneralPermission, Booking, AccommodationProperty, AccommodationRoom, ParkingLot, ParkingSnapshot
+    from models.sql_models import Donation, Vehicle, VehiclePermission, SupportQuery, GeneralPermission, Booking, AccommodationProperty, AccommodationRoom, ParkingLot, ParkingSnapshot, ParkingZone
     from sqlalchemy.future import select
     from datetime import datetime, timedelta, timezone
 
@@ -245,6 +245,57 @@ async def seed_data():
                 )
                 session.add_all([s1, s2, s3])
 
+            # 8. Parking Zones (Loop Detector / Boom Barrier system)
+            res_zones = await session.execute(select(ParkingZone).limit(1))
+            if not res_zones.scalar_one_or_none():
+                zones = [
+                    ParkingZone(
+                        zone_name="Toran Dwar Ground",
+                        allowed_vehicle_type="four_wheeler",
+                        total_physical_capacity=600,
+                        system_capacity_limit=570,   # 5% buffer
+                        current_occupancy=0,
+                        google_maps_coordinates="27.4465,75.4005",
+                        camera_url="https://www.youtube.com/watch?v=1-iS7LArMPA",
+                        barrier_state="auto",
+                        is_active=True,
+                    ),
+                    ParkingZone(
+                        zone_name="Ringas Road Lot",
+                        allowed_vehicle_type="four_wheeler",
+                        total_physical_capacity=1200,
+                        system_capacity_limit=1140,  # 5% buffer
+                        current_occupancy=0,
+                        google_maps_coordinates="27.4502,75.3995",
+                        camera_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                        barrier_state="auto",
+                        is_active=True,
+                    ),
+                    ParkingZone(
+                        zone_name="North Gate Ground",
+                        allowed_vehicle_type="two_wheeler",
+                        total_physical_capacity=800,
+                        system_capacity_limit=760,   # 5% buffer
+                        current_occupancy=0,
+                        google_maps_coordinates="27.4530,75.4055",
+                        camera_url="https://www.youtube.com/watch?v=2g811Eo7K8U",
+                        barrier_state="auto",
+                        is_active=True,
+                    ),
+                    ParkingZone(
+                        zone_name="Railway Station Lot",
+                        allowed_vehicle_type="heavy",
+                        total_physical_capacity=150,
+                        system_capacity_limit=142,   # 5% buffer
+                        current_occupancy=0,
+                        google_maps_coordinates="27.4440,75.3955",
+                        camera_url=None,
+                        barrier_state="auto",
+                        is_active=True,
+                    ),
+                ]
+                session.add_all(zones)
+
             # Seed system settings and gate tickets
             from models.sql_models import SystemSetting, GateTicket
             res_settings = await session.execute(select(SystemSetting).filter(SystemSetting.setting_key == "max_capacity"))
@@ -289,6 +340,41 @@ async def init_db():
                 await conn.execute(text("ALTER TABLE khatu_general_permissions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES khatu_users(id)"))
             except Exception as ex:
                 print(f"[INFO] Migration: Column user_id might already exist on khatu_general_permissions: {ex}")
+
+            # Zonal parking migrations — safe no-op if columns already exist
+            try:
+                await conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS khatu_parking_zones (
+                        zone_id SERIAL PRIMARY KEY,
+                        zone_name VARCHAR(100) NOT NULL,
+                        allowed_vehicle_type VARCHAR(50) NOT NULL,
+                        total_physical_capacity INTEGER NOT NULL,
+                        system_capacity_limit INTEGER NOT NULL,
+                        current_occupancy INTEGER DEFAULT 0 NOT NULL,
+                        google_maps_coordinates VARCHAR(100) NOT NULL,
+                        camera_url TEXT,
+                        barrier_state VARCHAR(20) DEFAULT 'auto' NOT NULL,
+                        is_active BOOLEAN DEFAULT TRUE NOT NULL,
+                        last_calibrated_at TIMESTAMPTZ DEFAULT NOW(),
+                        created_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """))
+            except Exception as ex:
+                print(f"[INFO] Migration: khatu_parking_zones table might already exist: {ex}")
+            try:
+                await conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS khatu_parking_zone_sensor_logs (
+                        log_id BIGSERIAL PRIMARY KEY,
+                        zone_id INTEGER REFERENCES khatu_parking_zones(zone_id) ON DELETE CASCADE,
+                        gate_type VARCHAR(10) NOT NULL,
+                        sensor_id VARCHAR(50) NOT NULL,
+                        anomaly_flag BOOLEAN DEFAULT FALSE NOT NULL,
+                        flag_reason VARCHAR(255),
+                        triggered_at TIMESTAMPTZ DEFAULT NOW()
+                    )
+                """))
+            except Exception as ex:
+                print(f"[INFO] Migration: khatu_parking_zone_sensor_logs table might already exist: {ex}")
 
         print("[OK] PostgreSQL database tables initialized successfully.")
         

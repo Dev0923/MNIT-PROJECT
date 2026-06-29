@@ -344,6 +344,67 @@ async def list_bookings(
     return result.scalars().all()
 
 
+@router.get("/ticket-analytics")
+async def get_ticket_analytics(
+    db: AsyncSession = Depends(get_db),
+    _admin = Depends(get_admin_user)
+):
+    """Fetch booking and E-pass analytics for the dashboard."""
+    # 1. Total bookings counter (total people who booked tickets)
+    bookings_res = await db.execute(select(Booking))
+    bookings = bookings_res.scalars().all()
+    
+    total_people = 0
+    for b in bookings:
+        if b.booking_type == "individual":
+            total_people += 1
+        elif b.booking_type == "group":
+            total_people += b.group_details.get("count", 1) if b.group_details else 1
+            
+    # 2. Count Online and Offline E-Passes from GateTicket table
+    from models.sql_models import GateTicket
+    
+    online_res = await db.execute(select(func.count()).select_from(GateTicket).filter(GateTicket.booking_type == 'online'))
+    online_count = online_res.scalar_one()
+    
+    offline_res = await db.execute(select(func.count()).select_from(GateTicket).filter(GateTicket.booking_type == 'counter'))
+    offline_count = offline_res.scalar_one()
+    
+    # 3. Compile bookings list for table
+    from models.sql_models import User
+    
+    bookings_data = []
+    for b in bookings:
+        # Resolve username
+        username = "Devotee"
+        if b.user_id:
+            user_res = await db.execute(select(User).filter(User.id == b.user_id))
+            user = user_res.scalar_one_or_none()
+            if user and user.name:
+                username = user.name
+        
+        if username == "Devotee" and b.individual_details:
+            username = b.individual_details.get("name", "Devotee")
+            
+        bookings_data.append({
+            "user_name": username,
+            "ticket_id": b.booking_id,
+            "booking_time": b.date.isoformat() if b.date else None,
+            "phone": b.phone,
+            "status": b.status,
+            "booking_type": b.booking_type,
+            "created_at": b.created_at.isoformat() if b.created_at else None
+        })
+        
+    return {
+        "total_bookings_people": total_people,
+        "online_epasses": online_count,
+        "offline_epasses": offline_count,
+        "total_epasses": online_count + offline_count,
+        "bookings_list": bookings_data
+    }
+
+
 # ═══════════════════════════════════════════════════════
 # SUPPORT TICKETS
 # ═══════════════════════════════════════════════════════

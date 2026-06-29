@@ -502,3 +502,140 @@ export async function deleteGalleryItem(id: number): Promise<void> {
   }
 }
 
+
+// ── Zonal Parking System ──────────────────────────────────
+
+export interface ParkingZone {
+  zone_id: number;
+  zone_name: string;
+  allowed_vehicle_type: "two_wheeler" | "four_wheeler" | "heavy";
+  total_physical_capacity: number;
+  system_capacity_limit: number;
+  current_occupancy: number;
+  available_slots: number;
+  pct_full: number;
+  google_maps_coordinates: string; // "LAT,LONG"
+  barrier_state: "auto" | "forced_down";
+  is_active: boolean;
+  last_calibrated_at: string;
+}
+
+export interface ParkingZoneAdmin extends ParkingZone {
+  camera_url: string | null;
+  created_at: string;
+}
+
+export interface ParkingZoneCreate {
+  zone_name: string;
+  allowed_vehicle_type: "two_wheeler" | "four_wheeler" | "heavy";
+  total_physical_capacity: number;
+  system_capacity_limit: number;
+  google_maps_coordinates: string;
+  camera_url?: string;
+  is_active?: boolean;
+}
+
+export interface ParkingAnomalyLog {
+  log_id: number;
+  zone_id: number;
+  gate_type: "entry" | "exit";
+  sensor_id: string;
+  anomaly_flag: boolean;
+  flag_reason: string | null;
+  triggered_at: string;
+}
+
+export interface GateTriggerResponse {
+  status: string;
+  message: string;
+  zone_id: number;
+  zone_name: string;
+  current_occupancy: number;
+  available_slots: number;
+  anomaly_flagged: boolean;
+}
+
+/** Public — all active zones with live occupancy (for devotee page). */
+export async function getParkingZones(): Promise<ParkingZone[]> {
+  return apiFetch<ParkingZone[]>("/api/parking/zones", {}, false);
+}
+
+export async function getParkingZone(zoneId: number): Promise<ParkingZone> {
+  return apiFetch<ParkingZone>(`/api/parking/zones/${zoneId}`, {}, false);
+}
+
+/** Admin — all zones with camera URLs. */
+export async function getAdminParkingZones(): Promise<ParkingZoneAdmin[]> {
+  return apiFetch<ParkingZoneAdmin[]>("/api/parking/admin/zones");
+}
+
+export async function createParkingZone(data: ParkingZoneCreate): Promise<ParkingZoneAdmin> {
+  return apiFetch<ParkingZoneAdmin>("/api/parking/admin/zones", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Admin — reset a zone's occupancy counter to 0 (midnight calibration). */
+export async function resetZoneOccupancy(zoneId: number): Promise<ParkingZoneAdmin> {
+  return apiFetch<ParkingZoneAdmin>(`/api/parking/admin/zones/${zoneId}/reset`, {
+    method: "POST",
+  });
+}
+
+/** Admin — manually set occupancy to correct ghost-vehicle drift. */
+export async function adjustZoneOccupancy(zoneId: number, newOccupancy: number): Promise<ParkingZoneAdmin> {
+  return apiFetch<ParkingZoneAdmin>(`/api/parking/admin/zones/${zoneId}/adjust`, {
+    method: "POST",
+    body: JSON.stringify({ new_occupancy: newOccupancy }),
+  });
+}
+
+/** Admin — force barrier state (auto | forced_down). */
+export async function setZoneBarrier(zoneId: number, state: "auto" | "forced_down"): Promise<ParkingZoneAdmin> {
+  return apiFetch<ParkingZoneAdmin>(`/api/parking/admin/zones/${zoneId}/barrier`, {
+    method: "POST",
+    body: JSON.stringify({ state }),
+  });
+}
+
+/** Admin — anomaly logs (tailgating / double trigger flags). */
+export async function getParkingAnomalies(zoneId?: number, limit = 100): Promise<ParkingAnomalyLog[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (zoneId) params.set("zone_id", String(zoneId));
+  return apiFetch<ParkingAnomalyLog[]>(`/api/parking/admin/anomalies?${params}`);
+}
+
+/** Hardware / test — fire a gate-trigger event (entry or exit). */
+export async function fireGateTrigger(
+  zoneId: number,
+  gateType: "entry" | "exit",
+  sensorId: string
+): Promise<GateTriggerResponse> {
+  return apiFetch<GateTriggerResponse>("/api/parking/gate-trigger", {
+    method: "POST",
+    body: JSON.stringify({ zone_id: zoneId, gate_type: gateType, sensor_id: sensorId }),
+  }, false);
+}
+
+export interface TicketAnalyticsBooking {
+  user_name: string;
+  ticket_id: string;
+  booking_time: string | null;
+  phone: string;
+  status: string;
+  booking_type: string;
+  created_at: string | null;
+}
+
+export interface TicketAnalyticsResponse {
+  total_bookings_people: number;
+  online_epasses: number;
+  offline_epasses: number;
+  total_epasses: number;
+  bookings_list: TicketAnalyticsBooking[];
+}
+
+export async function getTicketAnalytics(): Promise<TicketAnalyticsResponse> {
+  return apiFetch<TicketAnalyticsResponse>("/api/admin/ticket-analytics");
+}

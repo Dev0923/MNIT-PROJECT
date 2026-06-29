@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
@@ -16,6 +16,7 @@ import imgVehicle from "../../imports/vehicle permission.jpg.jpeg";
 import imgDarshan from "../../imports/darshan booking.webp";
 import imgDonation from "../../imports/donation.png";
 import imgHealth from "../../imports/health camp.jpg.jpeg";
+import { getParkingZones, type ParkingZone } from "../services/adminApi";
 
 const C = {
   orange: "#F7941D",
@@ -44,6 +45,98 @@ export function HomePage() {
   const setLang = (l: "en" | "hi") => i18n.changeLanguage(l);
 
   const [isSOSOpen, setIsSOSOpen] = useState(false);
+
+  // Zonal Parking Live Data Logic
+  const [parkingZones, setParkingZones] = useState<ParkingZone[]>([]);
+
+  const fetchParkingZones = useCallback(async () => {
+    try {
+      const zones = await getParkingZones();
+      setParkingZones(zones);
+    } catch (err) {
+      console.error("Error fetching parking zones on Homepage:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchParkingZones();
+
+    let ws: WebSocket | null = null;
+    let reconnectTimer: any = null;
+
+    const connectWS = () => {
+      ws = new WebSocket("ws://localhost:8000/api/parking/ws");
+      
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "parking_count_update") {
+            setParkingZones((prevZones) =>
+              prevZones.map((z) =>
+                z.zone_id === msg.zone_id
+                  ? {
+                      ...z,
+                      current_occupancy: msg.current_occupancy,
+                      available_slots: msg.available_slots,
+                      pct_full: msg.pct_full,
+                    }
+                  : z
+              )
+            );
+          }
+        } catch (e) {
+          // ignore
+        }
+      };
+
+      ws.onclose = () => {
+        reconnectTimer = setTimeout(connectWS, 4000);
+      };
+
+      ws.onerror = () => {
+        if (ws) ws.close();
+      };
+    };
+
+    connectWS();
+
+    const interval = setInterval(fetchParkingZones, 30000);
+
+    return () => {
+      clearInterval(interval);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (ws) ws.close();
+    };
+  }, [fetchParkingZones]);
+
+  const parkingMetrics = useMemo(() => {
+    const activeZones = parkingZones.filter(z => z.is_active);
+    const totalAvailable = activeZones.reduce((acc, z) => acc + z.available_slots, 0);
+    const totalLimit = activeZones.reduce((acc, z) => acc + z.system_capacity_limit, 0);
+    const totalOccupied = activeZones.reduce((acc, z) => acc + z.current_occupancy, 0);
+    
+    let statusLabel = "Available";
+    let statusColor = C.green; // #28A745
+    
+    const freeRatio = totalLimit > 0 ? totalAvailable / totalLimit : 1.0;
+    if (freeRatio > 0.20) {
+      statusLabel = "Available";
+      statusColor = C.green;
+    } else if (freeRatio > 0.05) {
+      statusLabel = "Filling Fast";
+      statusColor = "#F7941D"; // Orange
+    } else {
+      statusLabel = "Full";
+      statusColor = "#DC2626"; // Red
+    }
+
+    return {
+      totalAvailable,
+      totalLimit,
+      statusLabel,
+      statusColor,
+    };
+  }, [parkingZones]);
 
   // Live Weather Logic
   const [weatherTemp, setWeatherTemp] = useState<string>("24°C");
@@ -298,7 +391,23 @@ export function HomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard label={t('stats.darshan.label')} value={t('stats.darshan.value')} sub={t('stats.darshan.sub')} bg={C.darkBlue} icon={<Clock size={18} color="#fff" />} />
             <StatCard label={t('stats.crowd.label')} value={t('stats.crowd.value')} sub={t('stats.crowd.sub')} bg={C.green} icon={<Users2 size={18} color="#fff" />} />
-            <StatCard label={t('stats.parking.label')} value={t('stats.parking.value')} sub={t('stats.parking.sub')} bg={C.orange} icon={<Car size={18} color="#fff" />} />
+            <StatCard
+              label={t('stats.parking.label')}
+              value={<span className="font-extrabold">{parkingMetrics.totalAvailable} Spaces Left</span>}
+              sub={
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold text-white uppercase tracking-wider" style={{ backgroundColor: parkingMetrics.statusColor }}>
+                    {parkingMetrics.statusLabel}
+                  </span>
+                  <span className="text-[11px]" style={{ color: C.muted }}>
+                    ({parkingMetrics.totalAvailable} / {parkingMetrics.totalLimit} slots)
+                  </span>
+                </div>
+              }
+              bg={parkingMetrics.statusColor}
+              icon={<Car size={18} color="#fff" />}
+              onClick={() => navigate("/services/parking")}
+            />
             <StatCard
               label={t('stats.weather.label')}
               value={weatherTemp}
@@ -587,10 +696,11 @@ export function HomePage() {
 }
 
 /* ── Sub-components ───────────────────────────────────────── */
-function StatCard({ label, value, sub, bg, icon }: { label: string; value: string; sub: string; bg: string; icon: React.ReactNode }) {
+function StatCard({ label, value, sub, bg, icon, onClick }: { label: React.ReactNode; value: React.ReactNode; sub: React.ReactNode; bg: string; icon: React.ReactNode; onClick?: () => void }) {
   return (
     <div
-      className="rounded-2xl overflow-hidden transition-all hover:-translate-y-1"
+      onClick={onClick}
+      className={`rounded-2xl overflow-hidden transition-all hover:-translate-y-1 ${onClick ? 'cursor-pointer hover:shadow-xl' : ''}`}
       style={{
         backgroundColor: C.white,
         boxShadow: `0 6px 24px rgba(31,47,140,0.13), 0 1px 4px rgba(0,0,0,0.08)`,
@@ -603,7 +713,7 @@ function StatCard({ label, value, sub, bg, icon }: { label: string; value: strin
       <div className="p-5">
         {/* Label row */}
         <div className="flex items-center justify-between mb-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted }}>{label}</p>
+          <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: C.muted }}>{label}</div>
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: bg, boxShadow: `0 4px 12px ${bg}55` }}
@@ -613,12 +723,12 @@ function StatCard({ label, value, sub, bg, icon }: { label: string; value: strin
         </div>
 
         {/* Value */}
-        <p className="text-2xl font-extrabold mb-2" style={{ color: C.darkText }}>{value}</p>
+        <div className="text-2xl font-extrabold mb-2" style={{ color: C.darkText }}>{value}</div>
 
         {/* Sub-label with pulse dot */}
         <div className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: bg }} />
-          <p className="text-xs" style={{ color: C.muted }}>{sub}</p>
+          <div className="text-xs" style={{ color: C.muted }}>{sub}</div>
         </div>
       </div>
     </div>

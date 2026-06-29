@@ -29,6 +29,7 @@ import type {
   AdminUser, AdminDonation, AdminBooking,
   AdminSupportTicket, AdminVehiclePermit, AdminStats, Announcement,
   AdminGeneralPermission, ParkingLotAdmin, ParkingSnapshot,
+  ParkingZoneAdmin, ParkingAnomalyLog,
 } from "../services/adminApi";
 
 /* ─── palette (site theme) ──────────────────────────────── */
@@ -50,9 +51,9 @@ const C = {
 
 /* ─── data types ────────────────────────────────────────── */
 type Section =
-  | "dashboard" | "donations" | "vehicle" | "permissions" | "epass"
+  | "dashboard" | "donations" | "vehicle" | "permissions" | "epass" | "ticketanalytics"
   | "livestatus" | "videoanalysis" | "gallery" | "announcements" | "support" | "reports"
-  | "users" | "lostfound";
+  | "users" | "lostfound" | "parkingcontrol";
 
 /* ─── sidebar nav ───────────────────────────────────────── */
 const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
@@ -60,9 +61,10 @@ const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "users", label: "Users", icon: <Users size={16} /> },
   { id: "donations", label: "Donations", icon: <IndianRupee size={16} /> },
   { id: "epass", label: "E-Pass & Bookings", icon: <UserCheck size={16} /> },
+  { id: "ticketanalytics", label: "Ticket Analytics", icon: <Ticket size={16} /> },
   { id: "vehicle", label: "Vehicle Permits", icon: <Car size={16} /> },
   { id: "permissions", label: "Permissions", icon: <ClipboardList size={16} /> },
-  { id: "parking", label: "Parking (AI)", icon: <Camera size={16} /> },
+  { id: "parkingcontrol", label: "Parking Control", icon: <Car size={16} /> },
   { id: "livestatus", label: "Live Status", icon: <Radio size={16} /> },
   { id: "videoanalysis", label: "AI Video Analysis", icon: <Monitor size={16} /> },
   { id: "gallery", label: "Gallery", icon: <Images size={16} /> },
@@ -1285,6 +1287,236 @@ function EPass() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION: TICKET & E-PASS ANALYTICS (real API)
+═══════════════════════════════════════════════════════════ */
+function TicketAnalytics() {
+  const [analytics, setAnalytics] = useState<api.TicketAnalyticsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "individual" | "group">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
+
+  const load = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const data = await api.getTicketAnalytics();
+      setAnalytics(data);
+    } catch (e: unknown) { setError((e as Error).message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = (analytics?.bookings_list ?? []).filter(b => {
+    const q = search.toLowerCase();
+    const matchSearch = !search ||
+      b.user_name.toLowerCase().includes(q) ||
+      b.ticket_id.toLowerCase().includes(q) ||
+      b.phone.includes(q);
+    const matchType = typeFilter === "all" || b.booking_type === typeFilter;
+    const matchStatus = statusFilter === "all" || b.status?.toLowerCase() === statusFilter;
+    return matchSearch && matchType && matchStatus;
+  });
+
+  const fmtDt = (s: string | null) => {
+    if (!s) return "—";
+    const d = new Date(s);
+    return d.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b" style={{ borderColor: C.border }}>
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: C.text }}>
+            <Ticket size={20} style={{ color: C.orange }} />
+            Ticket &amp; E-Pass Analytics
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color: C.muted }}>Unified real-time breakdown of all bookings, online E-passes, and counter tickets — sourced directly from the database.</p>
+        </div>
+        <button onClick={load} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white flex-shrink-0"
+          style={{ backgroundColor: C.darkBlue }}>
+          <RefreshCw size={13} /> Refresh
+        </button>
+      </div>
+
+      {error && <ErrorBanner msg={error} onRetry={load} />}
+      {loading && <LoadingSpinner msg="Loading ticket analytics from database…" />}
+
+      {!loading && analytics && (
+        <>
+          {/* ── KPI Metric Cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Bookings */}
+            <div className="bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border, borderTop: `3px solid ${C.darkBlue}` }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: C.muted }}>Total Booked People</p>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${C.darkBlue}15`, color: C.darkBlue }}>
+                  <Users2 size={18} />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold" style={{ color: C.darkBlue }}>{analytics.total_bookings_people.toLocaleString()}</p>
+              <p className="text-[11px] mt-1" style={{ color: C.muted }}>All darshan ticket bookings combined</p>
+            </div>
+
+            {/* Total E-Passes */}
+            <div className="bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border, borderTop: `3px solid ${C.orange}` }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: C.muted }}>Total E-Passes</p>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${C.orange}15`, color: C.orange }}>
+                  <Ticket size={18} />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold" style={{ color: C.orange }}>{analytics.total_epasses.toLocaleString()}</p>
+              <p className="text-[11px] mt-1" style={{ color: C.muted }}>Combined online + counter gate tickets</p>
+            </div>
+
+            {/* Online E-Passes */}
+            <div className="bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border, borderTop: `3px solid ${C.green}` }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: C.muted }}>Online E-Passes</p>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${C.green}15`, color: C.green }}>
+                  <Globe size={18} />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold" style={{ color: C.green }}>{analytics.online_epasses.toLocaleString()}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: `${C.green}15`, color: C.green }}>WEB</span>
+                <span className="text-[11px]" style={{ color: C.muted }}>Booked via the online portal</span>
+              </div>
+            </div>
+
+            {/* Offline / Counter E-Passes */}
+            <div className="bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border, borderTop: `3px solid #D97706` }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: C.muted }}>Counter E-Passes</p>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#FEF3C715", color: "#D97706" }}>
+                  <FileText size={18} />
+                </div>
+              </div>
+              <p className="text-3xl font-extrabold" style={{ color: "#D97706" }}>{analytics.offline_epasses.toLocaleString()}</p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}>COUNTER</span>
+                <span className="text-[11px]" style={{ color: C.muted }}>Issued at on-site ticket windows</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ── E-Pass Source Breakdown Bar ── */}
+          {analytics.total_epasses > 0 && (
+            <div className="bg-white rounded-2xl p-5 border shadow-sm" style={{ borderColor: C.border }}>
+              <h3 className="text-sm font-bold mb-3" style={{ color: C.text }}>E-Pass Source Distribution</h3>
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-[11px] font-semibold w-16" style={{ color: C.green }}>Online</span>
+                <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
+                  <div className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${Math.round((analytics.online_epasses / analytics.total_epasses) * 100)}%`,
+                      background: `linear-gradient(90deg, ${C.green}, #4ade80)`,
+                    }}
+                  />
+                </div>
+                <span className="text-[11px] font-bold w-10 text-right" style={{ color: C.green }}>
+                  {Math.round((analytics.online_epasses / analytics.total_epasses) * 100)}%
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[11px] font-semibold w-16" style={{ color: "#D97706" }}>Counter</span>
+                <div className="flex-1 h-4 rounded-full overflow-hidden" style={{ backgroundColor: C.border }}>
+                  <div className="h-full rounded-full transition-all duration-700"
+                    style={{
+                      width: `${Math.round((analytics.offline_epasses / analytics.total_epasses) * 100)}%`,
+                      background: "linear-gradient(90deg, #D97706, #fbbf24)",
+                    }}
+                  />
+                </div>
+                <span className="text-[11px] font-bold w-10 text-right" style={{ color: "#D97706" }}>
+                  {Math.round((analytics.offline_epasses / analytics.total_epasses) * 100)}%
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* ── Live Bookings Table ── */}
+          <div className="bg-white rounded-2xl border shadow-sm overflow-hidden" style={{ borderColor: C.border }}>
+            {/* Table Header + Filters */}
+            <div className="px-5 py-4 border-b flex flex-wrap items-center justify-between gap-3" style={{ borderColor: C.border }}>
+              <div>
+                <h3 className="text-sm font-bold" style={{ color: C.text }}>Live Booking Records</h3>
+                <p className="text-[11px]" style={{ color: C.muted }}>{filtered.length} of {analytics.bookings_list.length} entries shown</p>
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <SearchBar value={search} onChange={setSearch} ph="Search name, ticket ID, phone…" />
+                {(["all", "individual", "group"] as const).map(t => (
+                  <button key={t} onClick={() => setTypeFilter(t)}
+                    className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all capitalize"
+                    style={{ backgroundColor: typeFilter === t ? C.darkBlue : C.bg, color: typeFilter === t ? "white" : C.muted, border: `1px solid ${typeFilter === t ? C.darkBlue : C.border}` }}>
+                    {t}
+                  </button>
+                ))}
+                {(["all", "pending", "confirmed", "cancelled"] as const).map(s => (
+                  <button key={s} onClick={() => setStatusFilter(s)}
+                    className="px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all capitalize"
+                    style={{ backgroundColor: statusFilter === s ? C.orange : C.bg, color: statusFilter === s ? "white" : C.muted, border: `1px solid ${statusFilter === s ? C.orange : C.border}` }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scrollable Table Body */}
+            <div style={{ maxHeight: 420, overflowY: "auto" }}>
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 z-10">
+                  <tr>
+                    {["User Name", "Ticket ID", "Type", "Booking Date", "Phone", "Status", "Created At"].map(col => (
+                      <Th key={col} ch={col} />
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-10 text-center text-xs" style={{ color: C.muted }}>No bookings found matching your filters.</td>
+                    </tr>
+                  ) : filtered.map((b, i) => (
+                    <tr key={i} className="hover:bg-gray-50 transition-colors" style={{ borderBottom: `1px solid ${C.border}` }}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Avatar name={b.user_name} color={C.darkBlue} />
+                          <span className="font-semibold" style={{ color: C.text }}>{b.user_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="font-mono text-[11px] px-2 py-0.5 rounded-lg font-bold" style={{ backgroundColor: `${C.darkBlue}10`, color: C.darkBlue }}>
+                          {b.ticket_id}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="capitalize px-2 py-0.5 rounded-full text-[10px] font-semibold"
+                          style={{ backgroundColor: b.booking_type === "group" ? `${C.orange}15` : `${C.darkBlue}10`, color: b.booking_type === "group" ? C.orange : C.darkBlue }}>
+                          {b.booking_type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3" style={{ color: C.muted }}>{fmtDt(b.booking_time)}</td>
+                      <td className="px-4 py-3" style={{ color: C.muted }}>{b.phone}</td>
+                      <td className="px-4 py-3"><Chip status={b.status ?? "pending"} /></td>
+                      <td className="px-4 py-3" style={{ color: C.muted }}>{fmtDt(b.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -3366,368 +3598,308 @@ function LostFoundSection() {
 
 
 /* ═══════════════════════════════════════════════════════════
-   SECTION: PARKING (AI-powered vehicle detection)
+   SECTION: PARKING CONTROL (Loop Detector + Boom Barrier)
 ═══════════════════════════════════════════════════════════ */
-function ParkingAdmin() {
-  const [lots, setLots] = useState<ParkingLotAdmin[]>([]);
-  const [snapshots, setSnapshots] = useState<Record<number, ParkingSnapshot[]>>({});
-  const [selectedLot, setSelectedLot] = useState<ParkingLotAdmin | null>(null);
-  const [analyzing, setAnalyzing] = useState<number | null>(null);
+
+const WS_PARKING_URL = "ws://localhost:8000/api/parking/ws";
+
+function ParkingControl() {
+  const [zones, setZones] = useState<ParkingZoneAdmin[]>([]);
+  const [anomalies, setAnomalies] = useState<ParkingAnomalyLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editLot, setEditLot] = useState<ParkingLotAdmin | null>(null);
-  const [formName, setFormName] = useState("");
-  const [formSlots, setFormSlots] = useState("100");
-  const [formCamera, setFormCamera] = useState("");
-  const [formDesc, setFormDesc] = useState("");
+  const [adjustZone, setAdjustZone] = useState<ParkingZoneAdmin | null>(null);
+  const [adjustValue, setAdjustValue] = useState("");
   const [saving, setSaving] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  const loadLots = useCallback(async () => {
+  const loadZones = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const data = await api.getAdminParkingLots();
-      setLots(data);
-      if (data.length > 0) setSelectedLot(prev => prev ? (data.find(l => l.id === prev.id) ?? data[0]) : data[0]);
+      const [z, a] = await Promise.all([
+        api.getAdminParkingZones(),
+        api.getParkingAnomalies(undefined, 50),
+      ]);
+      setZones(z);
+      setAnomalies(a);
     } catch (e: unknown) {
-      setError((e as Error).message ?? "Failed to load parking lots.");
+      setError((e as Error).message ?? "Failed to load parking zones.");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { loadLots(); }, [loadLots]);
+  useEffect(() => {
+    loadZones();
+    // WebSocket for live updates
+    const connect = () => {
+      const ws = new WebSocket(WS_PARKING_URL);
+      wsRef.current = ws;
+      ws.onopen = () => setWsConnected(true);
+      ws.onclose = () => { setWsConnected(false); setTimeout(connect, 4000); };
+      ws.onerror = () => ws.close();
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data as string);
+          if (msg.type === "parking_count_update") {
+            setZones(prev => prev.map(z =>
+              z.zone_id === msg.zone_id
+                ? { ...z, current_occupancy: msg.current_occupancy, available_slots: msg.available_slots, pct_full: msg.pct_full }
+                : z
+            ));
+            // If anomaly in payload, prepend to ticker
+            if (msg.anomaly) {
+              const fake: ParkingAnomalyLog = {
+                log_id: Date.now(),
+                zone_id: msg.zone_id,
+                gate_type: "entry",
+                sensor_id: msg.anomaly.sensor_id,
+                anomaly_flag: true,
+                flag_reason: msg.anomaly.reason,
+                triggered_at: new Date().toISOString(),
+              };
+              setAnomalies(prev => [fake, ...prev].slice(0, 50));
+            }
+          }
+        } catch { /* ignore */ }
+      };
+    };
+    connect();
+    return () => { wsRef.current?.close(); };
+  }, [loadZones]);
 
-  const loadSnapshots = useCallback(async (lotId: number) => {
+  async function handleReset(zone: ParkingZoneAdmin) {
+    if (!confirm(`Reset occupancy for "${zone.zone_name}" to 0?`)) return;
     try {
-      const snaps = await api.getParkingSnapshots(lotId, 20);
-      setSnapshots(prev => ({ ...prev, [lotId]: snaps }));
-    } catch { /* silent */ }
-  }, []);
-
-  useEffect(() => { if (selectedLot) loadSnapshots(selectedLot.id); }, [selectedLot, loadSnapshots]);
-
-  async function handleAnalyze(lot: ParkingLotAdmin) {
-    setAnalyzing(lot.id);
-    try {
-      await api.triggerParkingAnalysis(lot.id);
-      const [updatedLots, snaps] = await Promise.all([
-        api.getAdminParkingLots(),
-        api.getParkingSnapshots(lot.id, 20),
-      ]);
-      setLots(updatedLots);
-      setSnapshots(prev => ({ ...prev, [lot.id]: snaps }));
-      const updated = updatedLots.find(l => l.id === lot.id);
-      if (updated) setSelectedLot(updated);
-    } catch (e: unknown) {
-      alert((e as Error).message ?? "Analysis failed.");
-    } finally {
-      setAnalyzing(null);
-    }
+      const updated = await api.resetZoneOccupancy(zone.zone_id);
+      setZones(prev => prev.map(z => z.zone_id === updated.zone_id ? updated : z));
+    } catch (e: unknown) { alert((e as Error).message ?? "Reset failed."); }
   }
 
-  function openForm(lot?: ParkingLotAdmin) {
-    setEditLot(lot ?? null);
-    setFormName(lot?.name ?? "");
-    setFormSlots(String(lot?.total_slots ?? 100));
-    setFormCamera(lot?.camera_url ?? "");
-    setFormDesc(lot?.location_description ?? "");
-    setShowForm(true);
+  async function handleBarrier(zone: ParkingZoneAdmin) {
+    const newState = zone.barrier_state === "auto" ? "forced_down" : "auto";
+    try {
+      const updated = await api.setZoneBarrier(zone.zone_id, newState);
+      setZones(prev => prev.map(z => z.zone_id === updated.zone_id ? updated : z));
+    } catch (e: unknown) { alert((e as Error).message ?? "Barrier update failed."); }
   }
 
-  async function handleSave() {
+  async function handleAdjust() {
+    if (!adjustZone) return;
+    const val = parseInt(adjustValue, 10);
+    if (isNaN(val) || val < 0) { alert("Enter a valid non-negative integer."); return; }
     setSaving(true);
     try {
-      if (editLot) {
-        await api.updateParkingLot(editLot.id, {
-          name: formName, total_slots: Number(formSlots),
-          camera_url: formCamera || undefined,
-          location_description: formDesc || undefined,
-        });
-      } else {
-        await api.createParkingLot({
-          name: formName, total_slots: Number(formSlots),
-          camera_url: formCamera || undefined,
-          location_description: formDesc || undefined,
-        });
-      }
-      setShowForm(false);
-      await loadLots();
-    } catch (e: unknown) {
-      alert((e as Error).message ?? "Save failed.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(id: number) {
-    if (!confirm("Deactivate this parking lot?")) return;
-    try {
-      await api.deleteParkingLot(id);
-      await loadLots();
-      if (selectedLot?.id === id) setSelectedLot(null);
-    } catch (e: unknown) {
-      alert((e as Error).message ?? "Delete failed.");
-    }
+      const updated = await api.adjustZoneOccupancy(adjustZone.zone_id, val);
+      setZones(prev => prev.map(z => z.zone_id === updated.zone_id ? updated : z));
+      setAdjustZone(null);
+    } catch (e: unknown) { alert((e as Error).message ?? "Adjust failed."); }
+    finally { setSaving(false); }
   }
 
   function getYouTubeEmbed(url: string | null) {
     if (!url) return null;
     const match = url.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-    if (!match) return null;
-    return `https://www.youtube.com/embed/${match[1]}?autoplay=0&mute=1&controls=1&rel=0`;
+    return match ? `https://www.youtube.com/embed/${match[1]}?autoplay=0&mute=1&controls=1&rel=0` : null;
   }
 
-  function slotColor(pct: number) {
-    if (pct >= 90) return "#ef4444";
-    if (pct >= 70) return "#f97316";
-    if (pct >= 40) return "#eab308";
-    return "#22c55e";
-  }
+  const VEHICLE_ICON: Record<string, string> = { two_wheeler: "🏍️", four_wheeler: "🚗", heavy: "🚌" };
 
-  const lotSnaps = selectedLot ? (snapshots[selectedLot.id] ?? []) : [];
-  const embedUrl = selectedLot ? getYouTubeEmbed(selectedLot.camera_url) : null;
-
-  if (loading) return <LoadingSpinner msg="Loading parking lots…" />;
-  if (error) return <ErrorBanner msg={error} onRetry={loadLots} />;
+  if (loading) return <LoadingSpinner msg="Loading parking zones…" />;
+  if (error) return <ErrorBanner msg={error} onRetry={loadZones} />;
 
   return (
     <div>
-      <Head
-        title="Parking Management (AI)"
-        sub="AI-powered vehicle detection — monitor slots and camera feeds"
-        right={
-          <button id="parking-add-lot-btn" onClick={() => openForm()}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white"
-            style={{ backgroundColor: C.darkBlue }}>
-            <Plus size={14} /> Add Lot
-          </button>
-        }
-      />
-
-      {/* Add / Edit Lot Modal */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0,0,0,0.5)" }}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4"
-            style={{ border: `1px solid ${C.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-            <h3 className="text-sm font-bold mb-4" style={{ color: C.text }}>
-              {editLot ? "Edit Parking Lot" : "Add New Parking Lot"}
-            </h3>
-            <div className="flex flex-col gap-3">
-              {([
-                ["Lot Name *", formName, setFormName, "e.g. Main Parking Zone A", "text"],
-                ["Total Slots *", formSlots, setFormSlots, "e.g. 150", "number"],
-                ["Camera URL (YouTube)", formCamera, setFormCamera, "https://youtube.com/watch?v=...", "url"],
-                ["Location Description", formDesc, setFormDesc, "e.g. Near Gate 1, North Side", "text"],
-              ] as [string, string, (v: string) => void, string, string][]).map(([label, val, setter, ph, type]) => (
-                <div key={label}>
-                  <label className="text-[11px] font-semibold mb-1 block" style={{ color: C.muted }}>{label}</label>
-                  <input type={type} value={val} onChange={e => setter(e.target.value)} placeholder={ph}
-                    className="w-full px-3 py-2 rounded-xl text-xs outline-none"
-                    style={{ border: `1px solid ${C.border}`, color: C.text }} />
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button onClick={handleSave} disabled={saving || !formName || !formSlots}
+      {/* Adjust Modal */}
+      {adjustZone && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-4" style={{ border: `1px solid ${C.border}`, boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+            <h3 className="text-sm font-bold mb-1" style={{ color: C.text }}>Manually Adjust Count</h3>
+            <p className="text-[11px] mb-4" style={{ color: C.muted }}>Zone: <b>{adjustZone.zone_name}</b> · Current: {adjustZone.current_occupancy} · Buffer limit: {adjustZone.system_capacity_limit}</p>
+            <input type="number" min={0} max={adjustZone.system_capacity_limit}
+              value={adjustValue} onChange={e => setAdjustValue(e.target.value)}
+              placeholder="Enter corrected count"
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none mb-4"
+              style={{ border: `1px solid ${C.border}`, color: C.text }} />
+            <div className="flex gap-3">
+              <button onClick={handleAdjust} disabled={saving}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white"
                 style={{ backgroundColor: C.darkBlue, opacity: saving ? 0.7 : 1 }}>
                 {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                {saving ? "Saving…" : "Save"}
+                {saving ? "Saving…" : "Set Count"}
               </button>
-              <button onClick={() => setShowForm(false)}
+              <button onClick={() => setAdjustZone(null)}
                 className="flex-1 px-4 py-2.5 rounded-xl text-xs font-bold"
-                style={{ backgroundColor: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>
-                Cancel
-              </button>
+                style={{ backgroundColor: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>Cancel</button>
             </div>
           </div>
         </div>
       )}
 
-      <div className="grid xl:grid-cols-3 gap-5">
-        {/* Left: Lot List */}
-        <div className="xl:col-span-1 flex flex-col gap-3">
-          <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C.muted }}>Parking Lots</p>
-          {lots.length === 0 && (
-            <div className="text-xs text-center py-8 rounded-2xl"
-              style={{ background: C.bg, color: C.muted, border: `1px dashed ${C.border}` }}>
-              No lots configured. Click "Add Lot" to get started.
-            </div>
-          )}
-          {lots.map(lot => {
-            const color = slotColor(lot.occupancy_pct);
-            const isSelected = selectedLot?.id === lot.id;
-            return (
-              <div key={lot.id} id={`parking-lot-${lot.id}`}
-                onClick={() => setSelectedLot(lot)}
-                className="rounded-2xl p-4 cursor-pointer transition-all"
-                style={{
-                  backgroundColor: isSelected ? `${C.darkBlue}0f` : C.bg,
-                  border: `1.5px solid ${isSelected ? C.darkBlue : C.border}`,
-                  boxShadow: isSelected ? `0 0 0 3px ${C.darkBlue}18` : undefined,
-                }}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold truncate" style={{ color: C.text }}>{lot.name}</p>
-                    {lot.location_description && (
-                      <p className="text-[10px] truncate mt-0.5" style={{ color: C.muted }}>📍 {lot.location_description}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 ml-2">
-                    <IconBtn col={C.darkBlue} icon={<Edit2 size={11} />} tip="Edit" onClick={e => { e.stopPropagation(); openForm(lot); }} />
-                    <IconBtn col={C.red} icon={<Trash2 size={11} />} tip="Deactivate" onClick={e => { e.stopPropagation(); handleDelete(lot.id); }} />
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <div className="flex justify-between text-[10px] mb-1" style={{ color: C.muted }}>
-                    <span>Occupied: <b style={{ color: "#ef4444" }}>{lot.occupied_slots}</b></span>
-                    <span>Free: <b style={{ color: "#22c55e" }}>{lot.available_slots}</b></span>
-                  </div>
-                  <div style={{ background: "#e5e7eb", borderRadius: 6, height: 6, overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${lot.occupancy_pct}%`, background: color, borderRadius: 6, transition: "width 0.6s ease" }} />
-                  </div>
-                  <div className="flex justify-between text-[10px] mt-1" style={{ color: C.muted }}>
-                    <span>{Math.round(lot.occupancy_pct)}% occupied</span>
-                    <span>/{lot.total_slots} total</span>
-                  </div>
-                </div>
-                <button id={`parking-analyze-${lot.id}`}
-                  onClick={e => { e.stopPropagation(); handleAnalyze(lot); }}
-                  disabled={analyzing === lot.id}
-                  className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all"
-                  style={{ backgroundColor: `${C.darkBlue}12`, color: C.darkBlue, border: `1px solid ${C.darkBlue}30`, opacity: analyzing === lot.id ? 0.6 : 1 }}>
-                  {analyzing === lot.id
-                    ? <><Loader2 size={11} className="animate-spin" /> Analyzing…</>
-                    : <><Activity size={11} /> Run AI Detection</>}
-                </button>
-                {!lot.is_active && (
-                  <span className="mt-2 inline-block text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                    style={{ background: "#f3f4f6", color: C.muted }}>Inactive</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      <Head
+        title="Parking Control &amp; CCTV Matrix"
+        sub={`Loop Detector + Boom Barrier System · ${wsConnected ? "🟢 WebSocket Live" : "🔴 Polling mode"}`}
+        right={
+          <button onClick={loadZones} id="parking-refresh-btn"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white"
+            style={{ backgroundColor: C.darkBlue }}>
+            <RefreshCw size={13} /> Refresh
+          </button>
+        }
+      />
 
-        {/* Right: Detail panel */}
-        <div className="xl:col-span-2 flex flex-col gap-5">
-          {!selectedLot ? (
-            <div className="rounded-2xl flex flex-col items-center justify-center py-20 text-center"
-              style={{ background: C.bg, border: `1px dashed ${C.border}` }}>
-              <Camera size={32} style={{ color: C.muted }} className="mb-3" />
-              <p className="text-xs font-semibold" style={{ color: C.muted }}>Select a parking lot to view details</p>
-            </div>
-          ) : (
-            <>
-              {/* Camera Feed */}
-              <div className="bg-white rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
-                <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <div className="flex items-center gap-2">
-                    <Camera size={14} style={{ color: C.darkBlue }} />
-                    <p className="text-xs font-bold" style={{ color: C.text }}>Live Camera Feed</p>
-                    <span className="flex items-center gap-1 text-[10px] font-semibold"
-                      style={{ color: embedUrl ? "#22c55e" : C.muted }}>
-                      <span className="w-1.5 h-1.5 rounded-full inline-block"
-                        style={{ background: embedUrl ? "#22c55e" : "#9ca3af" }} />
-                      {embedUrl ? "Feed Active" : "No Feed Configured"}
+      {/* ── Live Zonal Counter Table ── */}
+      <div className="bg-white rounded-2xl overflow-hidden mb-5" style={{ border: `1px solid ${C.border}` }}>
+        <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${C.border}` }}>
+          <p className="text-xs font-bold" style={{ color: C.text }}>Live Zonal Counters &amp; Force Controls</p>
+          <span className="text-[10px] font-semibold px-2 py-1 rounded-full" style={{ background: "#dcfce7", color: "#166534" }}>Loop Detector System</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr style={{ background: C.bg }}>
+                {["Zone Name", "Vehicle Type", "Physical Cap", "Live Count", "Buffer Limit", "Available", "Occupancy", "Barrier", "Actions"].map(h => <Th key={h} ch={h} />)}
+              </tr>
+            </thead>
+            <tbody>
+              {zones.map(zone => {
+                const avail = zone.available_slots;
+                const pct = zone.system_capacity_limit > 0 ? Math.round((zone.current_occupancy / zone.system_capacity_limit) * 100) : 0;
+                const availColor = avail > zone.system_capacity_limit * 0.2 ? "#22c55e" : avail > zone.system_capacity_limit * 0.05 ? "#f59e0b" : "#ef4444";
+                const isForced = zone.barrier_state === "forced_down";
+                return (
+                  <tr key={zone.zone_id} className="hover:bg-gray-50 transition-colors border-b" style={{ borderColor: C.border }}>
+                    <Td><span className="font-bold" style={{ color: C.text }}>{zone.zone_name}</span></Td>
+                    <Td>{VEHICLE_ICON[zone.allowed_vehicle_type] ?? ""} {zone.allowed_vehicle_type.replace("_", " ")}</Td>
+                    <Td><span className="font-semibold">{zone.total_physical_capacity}</span></Td>
+                    <Td><span className="font-bold text-sm" style={{ color: pct >= 95 ? "#ef4444" : C.text }}>{zone.current_occupancy}</span></Td>
+                    <Td><span style={{ color: C.muted }}>{zone.system_capacity_limit}</span> <span className="text-[9px]" style={{ color: C.muted }}>(5% buf)</span></Td>
+                    <Td><span className="font-extrabold" style={{ color: availColor }}>{avail === 0 ? "FULL" : avail}</span></Td>
+                    <Td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ flex: 1, background: "#e5e7eb", borderRadius: 4, height: 6, minWidth: 60, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${Math.min(pct, 100)}%`, background: availColor, borderRadius: 4, transition: "width 0.5s" }} />
+                        </div>
+                        <span style={{ color: C.muted, fontSize: 10 }}>{pct}%</span>
+                      </div>
+                    </Td>
+                    <Td>
+                      <button id={`barrier-${zone.zone_id}`} onClick={() => handleBarrier(zone)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                        style={{
+                          background: isForced ? "#fee2e2" : "#dcfce7",
+                          color: isForced ? C.red : C.green,
+                          border: `1px solid ${isForced ? "#fca5a5" : "#86efac"}`,
+                        }}>
+                        {isForced ? "DOWN 🔴" : "AUTO 🟢"}
+                      </button>
+                    </Td>
+                    <Td>
+                      <div className="flex items-center gap-2">
+                        <button id={`reset-${zone.zone_id}`} onClick={() => handleReset(zone)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
+                          style={{ background: `${C.darkBlue}12`, color: C.darkBlue, border: `1px solid ${C.darkBlue}30` }}>
+                          <RotateCcw size={10} /> Reset
+                        </button>
+                        <button id={`adjust-${zone.zone_id}`} onClick={() => { setAdjustZone(zone); setAdjustValue(String(zone.current_occupancy)); }}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold"
+                          style={{ background: `${C.orange}15`, color: C.orange, border: `1px solid ${C.orange}40` }}>
+                          <Edit2 size={10} /> Adjust ±
+                        </button>
+                      </div>
+                    </Td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Bottom: CCTV Grid + Anomaly Ticker ── */}
+      <div className="grid xl:grid-cols-3 gap-5">
+
+        {/* CCTV feeds */}
+        <div className="xl:col-span-2 flex flex-col gap-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: C.muted }}>CCTV Matrix</p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {zones.map(zone => {
+              const embed = getYouTubeEmbed(zone.camera_url);
+              return (
+                <div key={zone.zone_id} className="bg-white rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
+                  <div className="flex items-center justify-between px-4 py-2.5" style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <div className="flex items-center gap-2">
+                      <Camera size={12} style={{ color: C.darkBlue }} />
+                      <span className="text-[11px] font-bold truncate" style={{ color: C.text }}>{zone.zone_name}</span>
+                    </div>
+                    <span className="flex items-center gap-1 text-[10px] font-semibold" style={{ color: embed ? "#22c55e" : C.muted }}>
+                      <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: embed ? "#22c55e" : "#9ca3af" }} />
+                      {embed ? "Live" : "No Feed"}
                     </span>
                   </div>
-                  <span className="text-[10px]" style={{ color: C.muted }}>{selectedLot.name}</span>
+                  {embed ? (
+                    <div style={{ position: "relative", paddingTop: "56.25%", background: "#000" }}>
+                      <iframe id={`cctv-${zone.zone_id}`} src={embed} title={zone.zone_name}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }} />
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8" style={{ background: "#0f172a", minHeight: 130 }}>
+                      <Monitor size={28} style={{ color: "rgba(255,255,255,0.12)" }} className="mb-2" />
+                      <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.25)" }}>No camera URL configured</p>
+                    </div>
+                  )}
                 </div>
-                {embedUrl ? (
-                  <div style={{ position: "relative", paddingTop: "56.25%", background: "#000" }}>
-                    <iframe id={`parking-video-${selectedLot.id}`}
-                      src={embedUrl} title={`Camera: ${selectedLot.name}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: "none" }} />
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-14"
-                    style={{ background: "#0f172a", minHeight: 200 }}>
-                    <Monitor size={36} style={{ color: "rgba(255,255,255,0.15)" }} className="mb-3" />
-                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>No camera URL configured</p>
-                    <p className="text-[10px] mt-1" style={{ color: "rgba(255,255,255,0.2)" }}>
-                      Edit this lot and paste a YouTube URL to enable the feed
-                    </p>
-                  </div>
-                )}
-              </div>
+              );
+            })}
+          </div>
+        </div>
 
-              {/* AI Stat Cards */}
-              <div className="grid sm:grid-cols-3 gap-4">
-                {[
-                  { label: "Total Slots", value: selectedLot.total_slots, color: C.darkBlue },
-                  { label: "Occupied", value: selectedLot.occupied_slots, color: "#ef4444" },
-                  { label: "Available", value: selectedLot.available_slots, color: "#22c55e" },
-                ].map(({ label, value, color }) => (
-                  <div key={label} className="bg-white rounded-2xl p-5 text-center" style={{ border: `1px solid ${C.border}` }}>
-                    <p className="text-3xl font-extrabold" style={{ color }}>{value}</p>
-                    <p className="text-[11px] uppercase tracking-wider mt-1 font-semibold" style={{ color: C.muted }}>{label}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* AI Confidence Bar */}
-              {lotSnaps.length > 0 && lotSnaps[0].confidence_score != null && (
-                <div className="bg-white rounded-2xl px-5 py-4 flex items-center gap-4"
-                  style={{ border: `1px solid ${C.border}` }}>
-                  <ShieldCheck size={18} style={{ color: C.green, flexShrink: 0 }} />
-                  <div className="flex-1">
-                    <p className="text-[11px] font-bold" style={{ color: C.muted }}>AI Detection Confidence</p>
-                    <div style={{ background: "#e5e7eb", borderRadius: 6, height: 8, marginTop: 6 }}>
-                      <div style={{
-                        height: "100%", width: `${(lotSnaps[0].confidence_score * 100).toFixed(0)}%`,
-                        background: `linear-gradient(90deg, ${C.green}, #4ade80)`,
-                        borderRadius: 6, transition: "width 0.6s ease",
-                      }} />
+        {/* Anomaly Ticker */}
+        <div className="xl:col-span-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: C.muted }}>Anomaly Alerts Log</p>
+          <div className="bg-white rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}`, maxHeight: 460 }}>
+            <div className="flex items-center gap-2 px-4 py-3" style={{ borderBottom: `1px solid ${C.border}`, background: "#fff7ed" }}>
+              <AlertTriangle size={13} style={{ color: C.orange }} />
+              <span className="text-[11px] font-bold" style={{ color: C.orange }}>Tailgating / Anomaly Ticker</span>
+              <span className="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: `${C.orange}20`, color: C.orange }}>{anomalies.length}</span>
+            </div>
+            <div style={{ overflowY: "auto", maxHeight: 400 }}>
+              {anomalies.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <CheckCircle2 size={24} style={{ color: C.green }} className="mb-2" />
+                  <p className="text-[11px]" style={{ color: C.muted }}>No anomalies detected</p>
+                </div>
+              ) : anomalies.map(a => (
+                <div key={a.log_id} className="px-4 py-3 border-b" style={{ borderColor: C.border }}>
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={12} style={{ color: C.red, flexShrink: 0, marginTop: 1 }} />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold leading-tight" style={{ color: C.text }}>
+                        {new Date(a.triggered_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                        {" ·"} Zone #{a.zone_id} · {a.gate_type.toUpperCase()}
+                      </p>
+                      <p className="text-[10px] mt-0.5" style={{ color: C.muted }}>Sensor: {a.sensor_id} — {a.flag_reason ?? "Anomaly"}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-extrabold" style={{ color: C.green }}>
-                    {(lotSnaps[0].confidence_score * 100).toFixed(0)}%
-                  </span>
                 </div>
-              )}
-
-              {/* Detection History Table */}
-              {lotSnaps.length > 0 ? (
-                <div className="bg-white rounded-2xl overflow-hidden" style={{ border: `1px solid ${C.border}` }}>
-                  <div className="px-5 py-3" style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <p className="text-xs font-bold" style={{ color: C.text }}>AI Detection History (last 20 scans)</p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead><tr>{["Time", "Occupied", "Available", "Confidence", "Boxes Detected"].map(h => <Th key={h} ch={h} />)}</tr></thead>
-                      <tbody>
-                        {lotSnaps.map(snap => (
-                          <tr key={snap.id} className="hover:bg-gray-50 transition-colors">
-                            <Td>{new Date(snap.recorded_at).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</Td>
-                            <Td><span className="font-bold" style={{ color: "#ef4444" }}>{snap.occupied_slots}</span></Td>
-                            <Td><span className="font-bold" style={{ color: "#22c55e" }}>{snap.available_slots}</span></Td>
-                            <Td>{snap.confidence_score != null ? <span className="font-semibold" style={{ color: C.green }}>{(snap.confidence_score * 100).toFixed(0)}%</span> : "—"}</Td>
-                            <Td>{snap.vehicle_boxes ? snap.vehicle_boxes.length : snap.occupied_slots}</Td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl flex flex-col items-center justify-center py-10 text-center"
-                  style={{ background: C.bg, border: `1px dashed ${C.border}` }}>
-                  <Activity size={24} style={{ color: C.muted }} className="mb-2" />
-                  <p className="text-xs" style={{ color: C.muted }}>No AI scans yet — click "Run AI Detection" to start.</p>
-                </div>
-              )}
-            </>
-          )}
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+
+/* ═══════════════════════════════════════════════════════════
+   ROOT — AdminPage
+
+
+
 
 
 /* ═══════════════════════════════════════════════════════════
@@ -3775,8 +3947,8 @@ export function AdminPage() {
   const SECTION_TITLE: Record<Section, string> = {
     dashboard: "Dashboard", users: "User Management", donations: "Donations",
     vehicle: "Vehicle Permits", permissions: "Permissions", epass: "E-Pass & Bookings",
-    parking: "Parking Management (AI)",
-    
+    ticketanalytics: "Ticket & E-Pass Analytics",
+    parkingcontrol: "Parking Control & CCTV Matrix",
     livestatus: "Live Status", videoanalysis: "AI Video Analysis", gallery: "Gallery", announcements: "Announcements",
     support: "Support Tickets", reports: "Reports", lostfound: "Lost & Found",
   };
@@ -3864,6 +4036,7 @@ export function AdminPage() {
           {section === "vehicle" && <VehiclePermits />}
           {section === "permissions" && <Permissions />}
           {section === "epass" && <EPass />}
+          {section === "ticketanalytics" && <TicketAnalytics />}
           {section === "livestatus" && <LiveStatus />}
           {section === "videoanalysis" && <VideoAnalysis />}
           {section === "gallery" && <Gallery />}
@@ -3871,7 +4044,7 @@ export function AdminPage() {
           {section === "support" && <Support />}
           {section === "reports" && <Reports />}
           {section === "lostfound" && <LostFoundSection />}
-          {section === "parking" && <ParkingAdmin />}
+          {section === "parkingcontrol" && <ParkingControl />}
         </main>
       </div>
     </div>

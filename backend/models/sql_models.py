@@ -405,3 +405,49 @@ class GateTicket(Base):
     scanned_at_entry = Column(DateTime(timezone=True), nullable=True)
     scanned_at_exit = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+# ══════════════════════════════════════════════════════════════
+#  ZONAL PARKING SYSTEM (Loop Detector + Boom Barrier)
+# ══════════════════════════════════════════════════════════════
+
+class ParkingZone(Base):
+    """
+    A physical parking ground managed by buried loop detectors and
+    automatic boom barriers. Occupancy is tracked via entry/exit events
+    instead of per-slot sensors or AI camera inference.
+    """
+    __tablename__ = "khatu_parking_zones"
+
+    zone_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    zone_name = Column(String(100), nullable=False)          # e.g. 'Toran Dwar Ground'
+    allowed_vehicle_type = Column(String(50), nullable=False) # 'two_wheeler'|'four_wheeler'|'heavy'
+    total_physical_capacity = Column(Integer, nullable=False)
+    system_capacity_limit = Column(Integer, nullable=False)  # Physical cap − 5% bad-parking buffer
+    current_occupancy = Column(Integer, default=0, nullable=False)
+    google_maps_coordinates = Column(String(100), nullable=False)  # "LAT,LONG" string
+    camera_url = Column(Text, nullable=True)                 # RTSP/HLS/YouTube for CCTV embed
+    barrier_state = Column(String(20), default="auto", nullable=False)  # 'auto' | 'forced_down'
+    is_active = Column(Boolean, default=True, nullable=False)
+    last_calibrated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    sensor_logs = relationship("ParkingZoneSensorLog", back_populates="zone", cascade="all, delete-orphan")
+
+
+class ParkingZoneSensorLog(Base):
+    """
+    Raw loop-detector trigger log. Every gate passage is recorded here.
+    Anomalous triggers (e.g. tailgating) are flagged for admin review.
+    """
+    __tablename__ = "khatu_parking_zone_sensor_logs"
+
+    log_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    zone_id = Column(Integer, ForeignKey("khatu_parking_zones.zone_id", ondelete="CASCADE"), nullable=False)
+    gate_type = Column(String(10), nullable=False)           # 'entry' | 'exit'
+    sensor_id = Column(String(50), nullable=False)           # e.g. 'LOOP_A', 'LOOP_B'
+    anomaly_flag = Column(Boolean, default=False, nullable=False)
+    flag_reason = Column(String(255), nullable=True)         # e.g. 'Possible Tailgating'
+    triggered_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    zone = relationship("ParkingZone", back_populates="sensor_logs")

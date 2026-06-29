@@ -85,6 +85,7 @@ app.include_router(inference_router)
 app.include_router(video_analysis_router)
 app.include_router(gallery_router)
 app.include_router(gate_router)
+app.include_router(parking_router)  # includes /api/parking/ws WebSocket + zonal endpoints
 
 # Mount general uploads directory (main branch)
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
