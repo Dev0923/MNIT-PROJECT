@@ -12,7 +12,7 @@ from sqlalchemy.future import select
 
 from database import get_db
 from models.sql_models import BhandaraSpot, BhandaraBooking, User
-from utils.jwt_handler import get_current_user, get_optional_current_user
+from utils.jwt_handler import get_current_user
 from utils.activity_logger import log_user_activity
 
 router = APIRouter(prefix="/api/bhandara", tags=["Bhandara Bookings"])
@@ -199,7 +199,7 @@ async def create_bhandara_booking(
     purpose: str = Form(...),
     noc_file: Optional[UploadFile] = File(None),
     id_proof_file: Optional[UploadFile] = File(None),
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -296,20 +296,19 @@ async def create_bhandara_booking(
         noc_filename=noc_filename,
         id_proof_filename=id_proof_filename,
         status="Pending",
-        user_id=current_user.id if current_user else None,
+        user_id=current_user.id,
         created_at=datetime.now(timezone.utc)
     )
 
     db.add(booking)
     
-    if current_user:
-        await log_user_activity(
-            db=db,
-            user_id=current_user.id,
-            activity_type="Bhandara",
-            title="Booked Bhandara Slot",
-            description=f"Requested slot for {expected_meals} meals"
-        )
+    await log_user_activity(
+        db=db,
+        user_id=current_user.id,
+        activity_type="Bhandara",
+        title="Booked Bhandara Slot",
+        description=f"Requested slot for {expected_meals} meals"
+    )
         
     await db.commit()
     await db.refresh(booking)

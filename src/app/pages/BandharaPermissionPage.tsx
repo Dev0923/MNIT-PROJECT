@@ -69,6 +69,7 @@ function MapFocus({ center, zoom }: { center: [number, number]; zoom: number }) 
 
 export function BandharaPermissionPage() {
   const navigate = useNavigate();
+  const isLoggedIn = !!(localStorage.getItem("token") || localStorage.getItem("authToken"));
   const mapRef = useRef<LeafletMap | null>(null);
 
   // Flow State Machine: 'selection' | 'form' | 'success'
@@ -378,8 +379,29 @@ export function BandharaPermissionPage() {
     <div className="min-h-screen py-10 px-4 md:px-8" style={{ backgroundColor: C.cream }}>
 {/* Main card */}
       <main className="max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl bg-white border border-gray-100 min-h-[500px]">
-        {/* Step tracker banner */}
-        <div className="px-8 py-5 flex items-center justify-between border-b" style={{ borderColor: C.border, backgroundColor: "#fafaf8" }}>
+        {!isLoggedIn ? (
+          <div className="p-8 py-20 flex flex-col items-center text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 mb-6 animate-pulse">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: C.darkBlue }}>
+              Authentication Required
+            </h3>
+            <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+              To apply for a Bhandara permission or book a spot, you must be signed in to your account.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="w-full py-3 rounded-full text-sm font-bold text-white transition-all shadow-md hover:scale-102 hover:shadow-lg active:scale-98"
+              style={{ backgroundColor: C.orange }}
+            >
+              Sign In / Register
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Step tracker banner */}
+            <div className="px-8 py-5 flex items-center justify-between border-b" style={{ borderColor: C.border, backgroundColor: "#fafaf8" }}>
           <div className="flex items-center gap-3">
             <span
               className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors"
@@ -943,6 +965,8 @@ export function BandharaPermissionPage() {
             </motion.div>
           )}
         </AnimatePresence>
+        </>
+        )}
       </main>
     </div>
   );

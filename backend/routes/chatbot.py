@@ -427,7 +427,7 @@ async def chat_message(
         sos_reply = (
             "🚨 **EMERGENCY DETECTED / आपातकालीन सूचना** 🚨\n\n"
             "If you or someone near you requires immediate medical or security assistance, "
-            "please click the **RED [SOS Alert] BUTTON** in the bottom-left/top corner of the website. "
+            "please click the **RED [SOS Alert] BUTTON** in the top-rigth corner of the website. "
             "This will instantly log your location coordinates and alert the temple rescue team.\n\n"
             "यदि आपको या आपके किसी करीबी को आपातकालीन सहायता की आवश्यकता है, तो कृपया तुरंत वेबसाइट पर "
             "मौजूद **लाल [SOS Alert] बटन** को दबाएं। इससे आपका स्थान दर्ज हो जाएगा और हमारी टीम सहायता के लिए पहुंचेगी।"

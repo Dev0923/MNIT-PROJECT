@@ -63,6 +63,7 @@ function MapEvents({ onMapClick }: { onMapClick: (latlng: [number, number]) => v
 export function MedicalCampPermissionPage() {
   const navigate = useNavigate();
   const mapRef = useRef<LeafletMap | null>(null);
+  const isLoggedIn = !!(localStorage.getItem("token") || localStorage.getItem("authToken"));
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"apply" | "applications">("apply");
@@ -309,9 +310,29 @@ export function MedicalCampPermissionPage() {
     <div className="min-h-screen py-10 px-4 md:px-8" style={{ backgroundColor: C.cream }}>
 {/* Main card */}
       <main className="max-w-6xl mx-auto rounded-3xl overflow-hidden shadow-2xl bg-white border border-gray-100 min-h-[500px]">
-        
-        {/* Tab switcher */}
-        <div className="flex border-b" style={{ borderColor: C.border }}>
+        {!isLoggedIn ? (
+          <div className="p-8 py-20 flex flex-col items-center text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 mb-6 animate-pulse">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: C.darkBlue }}>
+              Authentication Required
+            </h3>
+            <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+              To apply for a Medical Camp permission or view your applications, you must be signed in to your account.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="w-full py-3 rounded-full text-sm font-bold text-white transition-all shadow-md hover:scale-102 hover:shadow-lg active:scale-98"
+              style={{ backgroundColor: C.orange }}
+            >
+              Sign In / Register
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Tab switcher */}
+            <div className="flex border-b" style={{ borderColor: C.border }}>
           <button
             onClick={() => {
               setActiveTab("apply");
@@ -879,6 +900,8 @@ export function MedicalCampPermissionPage() {
             )}
           </AnimatePresence>
         </div>
+        </>
+        )}
       </main>
     </div>
   );

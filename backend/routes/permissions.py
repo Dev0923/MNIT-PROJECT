@@ -13,7 +13,7 @@ from sqlalchemy import select
 
 from database import get_db
 from models.sql_models import GeneralPermission, User
-from utils.jwt_handler import get_optional_current_user
+from utils.jwt_handler import get_current_user
 
 router = APIRouter(prefix="/api/permissions", tags=["Permissions"])
 
@@ -30,7 +30,7 @@ def generate_permission_code() -> str:
 @router.post("/bandhara")
 async def create_bandhara_permission(
     request: BandharaRequest,
-    current_user: Optional[User] = Depends(get_optional_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     code = None
@@ -54,6 +54,7 @@ async def create_bandhara_permission(
         purpose=request.purpose,
         date=request.date,
         status="pending",
+        user_id=current_user.id,
         created_at=datetime.now(timezone.utc)
     )
 

@@ -21,6 +21,7 @@ const C = {
 export function OtherPermissionsPage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isLoggedIn = !!(localStorage.getItem("token") || localStorage.getItem("authToken"));
 
   // Form states
   const [applicantName, setApplicantName] = useState("");
@@ -203,8 +204,29 @@ export function OtherPermissionsPage() {
 
       {/* Main card matching mock layout */}
       <main className="max-w-2xl mx-auto rounded-2xl overflow-hidden shadow-xl bg-white border border-gray-150 mt-12">
-        {/* Tab switcher */}
-        <div className="flex border-b" style={{ borderColor: C.border }}>
+        {!isLoggedIn ? (
+          <div className="p-8 py-20 flex flex-col items-center text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center bg-orange-100 text-orange-600 mb-6 animate-pulse">
+              <AlertCircle size={32} />
+            </div>
+            <h3 className="text-xl font-bold mb-2" style={{ color: C.darkBlue }}>
+              Authentication Required
+            </h3>
+            <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+              To apply for other permissions or view your applications, you must be signed in to your account.
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="w-full py-3 rounded-full text-sm font-bold text-white transition-all shadow-md hover:scale-102 hover:shadow-lg active:scale-98"
+              style={{ backgroundColor: C.orange }}
+            >
+              Sign In / Register
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Tab switcher */}
+            <div className="flex border-b" style={{ borderColor: C.border }}>
           <button
             onClick={() => {
               setActiveTab("apply");
@@ -565,6 +587,8 @@ export function OtherPermissionsPage() {
             )}
           </AnimatePresence>
         </div>
+        </>
+        )}
       </main>
     </div>
   );

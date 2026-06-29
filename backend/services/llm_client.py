@@ -55,6 +55,11 @@ class GeminiClient:
                 
                 if response.status_code != 200:
                     logger.error(f"[GeminiClient] API error: {response.status_code} - {response.text}")
+                    if response.status_code == 429:
+                        return (
+                            "🤖 I have temporarily exceeded my Gemini API rate limit or quota (429 Too Many Requests). "
+                            "Please check your API key configuration in the backend `.env` file or try again in a few seconds."
+                        )
                     return (
                         "I am having trouble reaching my AI services right now. "
                         "Please try again or use the quick action buttons for direct info."
