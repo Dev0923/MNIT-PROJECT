@@ -21,10 +21,13 @@ import imgHealth from "../../imports/health camp.jpg.jpeg";
 import { getParkingZones, type ParkingZone } from "../services/adminApi";
 import bhandaraPermission from "../../imports/bhandara permission.jpeg";
 import premimumAnnadaanSeva from "../../imports/anna daan.jpeg";
+import liveParkingStatus from "../../imports/parking status.jpeg";
+
 import trafficCommandCenter from "../../imports/traffic command center.jpeg";
 import accomodation from "../../imports/accomodation.jpeg";
 import crowdStatus from "../../imports/crowd status.jpeg";
-import liveParkingStatus from "../../imports/parking status.jpeg";
+
+
 
 
 
