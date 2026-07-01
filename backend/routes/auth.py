@@ -229,7 +229,7 @@ async def get_profile(
     Return the current user's personal info plus all their activity history:
     darshan bookings, donations, accommodation bookings, and vehicle permits.
     """
-    from models.sql_models import Booking, Donation, AccommodationBooking, Vehicle, VehiclePermission, AccommodationProperty, SOSAlert, BhandaraBooking, GeneralPermission, BhandaraSpot, LostItem, LostPerson
+    from models.sql_models import Booking, Donation, AccommodationBooking, AccommodationProperty, SOSAlert, BhandaraBooking, GeneralPermission, BhandaraSpot, LostItem, LostPerson
     from sqlalchemy.orm import selectinload
 
     # Darshan bookings
@@ -306,39 +306,6 @@ async def get_profile(
         for prop in res_props.scalars().all():
             property_map[prop.id] = prop.name
 
-    # Vehicles + permits
-    res_vehicles = await db.execute(
-        select(Vehicle)
-        .where(Vehicle.owner_id == current_user.id)
-    )
-    vehicles = res_vehicles.scalars().all()
-
-    vehicle_data = []
-    for v in vehicles:
-        res_permits = await db.execute(
-            select(VehiclePermission)
-            .where(VehiclePermission.vehicle_id == v.id)
-            .order_by(VehiclePermission.created_at.desc())
-        )
-        permits = res_permits.scalars().all()
-        vehicle_data.append({
-            "id": v.id,
-            "plate_number": v.plate_number,
-            "vehicle_type": v.vehicle_type,
-            "model": v.model,
-            "created_at": v.created_at.isoformat() if v.created_at else None,
-            "permits": [
-                {
-                    "id": p.id,
-                    "permit_type": p.permit_type,
-                    "status": p.status,
-                    "valid_from": p.valid_from.isoformat() if p.valid_from else None,
-                    "valid_to": p.valid_to.isoformat() if p.valid_to else None,
-                    "allowed_zones": p.allowed_zones,
-                }
-                for p in permits
-            ],
-        })
 
     # Activity log — from khatu_user_activities table
     activities_list = []
@@ -385,7 +352,6 @@ async def get_profile(
             "stays": len(acc_bookings),
             "bhandara": len(bhandara_bookings) + len(bhandara_perms),
             "medical": len(medical_perms),
-            "vehicles": len(vehicles),
             "sos": len(sos_alerts),
             "lostFound": len(lost_items) + len(lost_persons),
         },
@@ -434,7 +400,6 @@ async def get_profile(
             }
             for ab in acc_bookings
         ],
-        "vehicles": vehicle_data,
         "sos_alerts": [
             {
                 "id": s.id,

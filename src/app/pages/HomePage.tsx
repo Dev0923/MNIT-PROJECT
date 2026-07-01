@@ -14,7 +14,6 @@ import officerLogin from "../../imports/officer login.jpeg";
 import heroImg1 from "../../imports/hero section1.jpeg";
 import logoImg from "../../imports/image-21.png";
 import imgLostFound from "../../imports/lost and found.avif";
-import imgVehicle from "../../imports/vehicle permission.jpg.jpeg";
 import imgDarshan from "../../imports/darshan booking.jpeg";
 import imgDonation from "../../imports/donation.jpeg";
 import imgHealth from "../../imports/health camp.jpg.jpeg";
@@ -553,13 +552,6 @@ export function HomePage() {
                 cta: t('services.btnBook'),
                 img: accomodation,
                 desc: t('services.accomodationDesc'),
-              },
-              {
-                slug: "vehicle-permits",
-                title: t('services.vehicleTitle'),
-                cta: t('services.btnApply'),
-                img: imgVehicle,
-                desc: t('services.vehicleDesc'),
               },
               {
                 slug: "parking",

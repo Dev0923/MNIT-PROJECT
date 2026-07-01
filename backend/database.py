@@ -55,7 +55,7 @@ AsyncSessionLocal = async_sessionmaker(
 
 async def seed_data():
     """Seed initial mock records if database tables are empty."""
-    from models.sql_models import Donation, Vehicle, VehiclePermission, SupportQuery, GeneralPermission, Booking, AccommodationProperty, AccommodationRoom, ParkingLot, ParkingSnapshot, ParkingZone
+    from models.sql_models import Donation, SupportQuery, GeneralPermission, Booking, AccommodationProperty, AccommodationRoom, ParkingLot, ParkingSnapshot, ParkingZone
     from sqlalchemy.future import select
     from datetime import datetime, timedelta, timezone
 
@@ -90,26 +90,11 @@ async def seed_data():
                 queries = [
                     SupportQuery(name="Rohit Jain", email="rohit@gmail.com", subject="E-Pass not received", message="I booked an E-Pass on 18th June but haven't received the confirmation email yet. Please help.", created_at=datetime.now(timezone.utc) - timedelta(days=2)),
                     SupportQuery(name="Seema Agarwal", email="seema@yahoo.com", subject="Donation refund request", message="Payment deducted but booking failed on 19th June. Transaction ref: 98765. Please process refund.", created_at=datetime.now(timezone.utc) - timedelta(days=3)),
-                    SupportQuery(name="Amit Sharma", email="amit@gmail.com", subject="Vehicle permit rejected", message="My vehicle permit VEH003 was rejected. I am a registered devotee travelling from Madhya Pradesh.", created_at=datetime.now(timezone.utc) - timedelta(days=3)),
+                    SupportQuery(name="Amit Sharma", email="amit@gmail.com", subject="Parking zone query", message="Is parking zone A open for standard four-wheelers during Ekadashi?", created_at=datetime.now(timezone.utc) - timedelta(days=3)),
                     SupportQuery(name="Nisha Gupta", email="nisha@outlook.com", subject="80G certificate pending", message="I donated ₹11,000 on 16 June. The 80G certificate has not arrived in my email (XYZAB5678G).", created_at=datetime.now(timezone.utc) - timedelta(days=4)),
                 ]
                 session.add_all(queries)
 
-            # 4. Vehicles & Permits
-            res_veh_perm = await session.execute(select(VehiclePermission).limit(1))
-            if not res_veh_perm.scalar_one_or_none():
-                v1 = Vehicle(plate_number="RJ14AB1234", vehicle_type="Car", model="Swift", created_at=datetime.now(timezone.utc) - timedelta(days=2))
-                v2 = Vehicle(plate_number="RJ21CD5678", vehicle_type="Bus", model="Tata LPO", created_at=datetime.now(timezone.utc) - timedelta(days=2))
-                v3 = Vehicle(plate_number="MP09EF9012", vehicle_type="Car", model="Hyundai Creta", created_at=datetime.now(timezone.utc) - timedelta(days=2))
-                v4 = Vehicle(plate_number="UP32GH3456", vehicle_type="Tempo", model="Force Traveller", created_at=datetime.now(timezone.utc) - timedelta(days=2))
-                session.add_all([v1, v2, v3, v4])
-                await session.flush()
-
-                p1 = VehiclePermission(vehicle_id=v1.id, permit_type="Visitor Pass", status="Pending", valid_from=datetime.now(timezone.utc), valid_to=datetime.now(timezone.utc) + timedelta(days=1), allowed_zones=["Zone A"], created_at=datetime.now(timezone.utc) - timedelta(hours=5))
-                p2 = VehiclePermission(vehicle_id=v2.id, permit_type="Group Pass", status="Approved", valid_from=datetime.now(timezone.utc), valid_to=datetime.now(timezone.utc) + timedelta(days=1), allowed_zones=["Zone A", "Zone B"], created_at=datetime.now(timezone.utc) - timedelta(hours=10))
-                p3 = VehiclePermission(vehicle_id=v3.id, permit_type="Visitor Pass", status="Denied", valid_from=datetime.now(timezone.utc), valid_to=datetime.now(timezone.utc) + timedelta(days=1), allowed_zones=["Zone A"], created_at=datetime.now(timezone.utc) - timedelta(hours=15))
-                p4 = VehiclePermission(vehicle_id=v4.id, permit_type="Visitor Pass", status="Pending", valid_from=datetime.now(timezone.utc), valid_to=datetime.now(timezone.utc) + timedelta(days=1), allowed_zones=["Zone B"], created_at=datetime.now(timezone.utc) - timedelta(hours=20))
-                session.add_all([p1, p2, p3, p4])
 
             # 5. Bookings
             res_bookings = await session.execute(select(Booking).limit(1))

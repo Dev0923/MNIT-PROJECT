@@ -12,7 +12,7 @@ from database import get_db
 from models.sql_models import (
     User, DarshanSlot, AccommodationProperty, AccommodationRoom,
     SupportQuery, LostItem, FoundItem, CrowdDensityLog,
-    GeneralPermission, Vehicle, VehiclePermission
+    GeneralPermission
 )
 from utils.jwt_handler import get_optional_current_user
 from services.llm_client import llm_client
@@ -187,17 +187,7 @@ async def query_crowd_density(db: AsyncSession, language: str) -> str:
 async def query_user_permissions(db: AsyncSession, user: Optional[User], user_msg: str, language: str) -> str:
     # 1. Look for explicit codes in message
     code_match = re.search(r"\b([A-Z]{3}\d{3})\b", user_msg.upper())
-    plate_match = re.search(r"\b([A-Z]{2}\d{2}[A-Z]{2}\d{4})\b", user_msg.replace(" ", "").upper())
     
-    # Try alternate vehicle plate pattern if needed
-    alt_plate = None
-    if not plate_match:
-        words = user_msg.upper().split()
-        for w in words:
-            if re.match(r"^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$", w):
-                alt_plate = w
-                break
-
     lines = []
     found_any = False
 
@@ -228,100 +218,40 @@ async def query_user_permissions(db: AsyncSession, user: Optional[User], user_ms
             else:
                 lines.append(f"❌ I could not find any permission record for reference code '{code}'.")
 
-    elif plate_match or alt_plate:
-        plate = (plate_match.group(1) if plate_match else alt_plate).replace(" ", "").upper()
-        stmt_v = select(Vehicle).where(Vehicle.plate_number == plate)
-        res_v = await db.execute(stmt_v)
-        v = res_v.scalar_one_or_none()
-        if v:
-            stmt_vp = select(VehiclePermission).where(VehiclePermission.vehicle_id == v.id).order_by(VehiclePermission.created_at.desc())
-            res_vp = await db.execute(stmt_vp)
-            vps = res_vp.scalars().all()
-            found_any = True
-            
-            if language == "hi":
-                lines.append(f"🚗 वाहन अनुमति स्थिति ({plate}):")
-                lines.append(f"- **वाहन मॉडल:** {v.model or 'N/A'} ({v.vehicle_type})")
-                if vps:
-                    for vp in vps:
-                        valid_str = f"{vp.valid_from.strftime('%d-%m-%Y')} से {vp.valid_to.strftime('%d-%m-%Y')}"
-                        lines.append(f"- **पास प्रकार:** {vp.permit_type}")
-                        lines.append(f"- **वैधता:** {valid_str}")
-                        lines.append(f"- **स्थिति:** **{vp.status}**")
-                else:
-                    lines.append("- इस वाहन के लिए कोई सक्रिय परमिट/पास दर्ज नहीं है।")
-            else:
-                lines.append(f"🚗 Vehicle Permit Status ({plate}):")
-                lines.append(f"- **Vehicle Model:** {v.model or 'N/A'} ({v.vehicle_type})")
-                if vps:
-                    for vp in vps:
-                        valid_str = f"from {vp.valid_from.strftime('%d %b %Y')} to {vp.valid_to.strftime('%d %b %Y')}"
-                        lines.append(f"- **Pass Type:** {vp.permit_type}")
-                        lines.append(f"- **Validity:** {valid_str}")
-                        lines.append(f"- **Status:** **{vp.status}**")
-                else:
-                    lines.append("- No active passes/permits found for this vehicle.")
-        else:
-            if language == "hi":
-                lines.append(f"❌ वाहन संख्या '{plate}' के लिए कोई पंजीकरण रिकॉर्ड नहीं मिला।")
-            else:
-                lines.append(f"❌ I could not find any vehicle registration record for plate '{plate}'.")
-
     elif user:
         stmt_gen = select(GeneralPermission).where(GeneralPermission.user_id == user.id).order_by(GeneralPermission.created_at.desc())
         res_gen = await db.execute(stmt_gen)
         gen_perms = res_gen.scalars().all()
 
-        stmt_veh = select(Vehicle).where(Vehicle.owner_id == user.id)
-        res_veh = await db.execute(stmt_veh)
-        vehicles = res_veh.scalars().all()
-        veh_perms_list = []
-        for v in vehicles:
-            stmt_vp = select(VehiclePermission).where(VehiclePermission.vehicle_id == v.id).order_by(VehiclePermission.created_at.desc())
-            res_vp = await db.execute(stmt_vp)
-            vps = res_vp.scalars().all()
-            for vp in vps:
-                veh_perms_list.append((v, vp))
-
-        if gen_perms or veh_perms_list:
+        if gen_perms:
             found_any = True
             if language == "hi":
                 lines.append(f"📋 आपके पंजीकृत परमिट और अनुमतियाँ ({user.name}):")
-                if gen_perms:
-                    lines.append("\n**सामान्य सेवा अनुमतियाँ (जैसे भंडारा, मेडिकल कैंप):**")
-                    for p in gen_perms:
-                        lines.append(f"- {p.type} ({p.permission_code}): **{p.status}** (दिनांक: {p.date})")
-                if veh_perms_list:
-                    lines.append("\n**वाहन परमिट:**")
-                    for v, vp in veh_perms_list:
-                        lines.append(f"- {v.plate_number} ({vp.permit_type}): **{vp.status}**")
+                lines.append("\n**सामान्य सेवा अनुमतियाँ (जैसे भंडारा, मेडिकल कैंप):**")
+                for p in gen_perms:
+                    lines.append(f"- {p.type} ({p.permission_code}): **{p.status}** (दिनांक: {p.date})")
             else:
                 lines.append(f"📋 Your Registered Permits & Permissions ({user.name}):")
-                if gen_perms:
-                    lines.append("\n**General Event/Service Permits:**")
-                    for p in gen_perms:
-                        lines.append(f"- {p.type} ({p.permission_code}): **{p.status}** (Date: {p.date})")
-                if veh_perms_list:
-                    lines.append("\n**Vehicle Permits:**")
-                    for v, vp in veh_perms_list:
-                        lines.append(f"- {v.plate_number} ({vp.permit_type}): **{vp.status}**")
+                lines.append("\n**General Event/Service Permits:**")
+                for p in gen_perms:
+                    lines.append(f"- {p.type} ({p.permission_code}): **{p.status}** (Date: {p.date})")
         else:
             if language == "hi":
-                lines.append("🤷 आपके खाते से जुड़ी कोई अनुमति या वाहन परमिट नहीं मिला।")
-                lines.append("यदि आपके पास एक संदर्भ कोड है, तो कृपया इसे दर्ज करें (जैसे **BAN001** या वाहन संख्या **RJ14AB1234**)।")
+                lines.append("🤷 आपके खाते से जुड़ी कोई अनुमति नहीं मिला।")
+                lines.append("यदि आपके पास एक संदर्भ कोड है, तो कृपया इसे दर्ज करें (जैसे **BAN001**)।")
             else:
-                lines.append("🤷 No filed permissions or vehicle permits found linked to your account.")
-                lines.append("If you have a reference code, please type it (e.g. **BAN001** or vehicle plate **RJ14AB1234**) to query.")
+                lines.append("🤷 No filed permissions found linked to your account.")
+                lines.append("If you have a reference code, please type it (e.g. **BAN001**) to query.")
                 
     else:
         if language == "hi":
             lines.append("🔑 परमिट/अनुमति स्थिति की जांच करने के लिए:")
             lines.append("1. कृपया अपने खाते में लॉगिन करें।")
-            lines.append("2. या सीधे अपनी अनुमति संदर्भ संख्या दर्ज करें (जैसे **BAN001**, **MED001**) या वाहन संख्या (जैसे **RJ14AB1234**)।")
+            lines.append("2. या सीधे अपनी अनुमति संदर्भ संख्या दर्ज करें (जैसे **BAN001**, **MED001**)।")
         else:
-            lines.append("🔑 To check permission or vehicle permit status:")
+            lines.append("🔑 To check permission status:")
             lines.append("1. Please log in to your account.")
-            lines.append("2. Or type your permission reference code (e.g. **BAN001**, **MED001**) or vehicle plate number (e.g. **RJ14AB1234**).")
+            lines.append("2. Or type your permission reference code (e.g. **BAN001**, **MED001**).")
 
     return "\n".join(lines)
 
@@ -351,20 +281,8 @@ async def build_grounding_context(db: AsyncSession, user: Optional[User] = None)
         res_gen = await db.execute(stmt_gen)
         gen_perms = res_gen.scalars().all()
         gen_list = [f"{g.type} permit ({g.permission_code}): status {g.status}" for g in gen_perms]
-
-        # Get vehicles
-        stmt_veh = select(Vehicle).where(Vehicle.owner_id == user.id)
-        res_veh = await db.execute(stmt_veh)
-        vehicles = res_veh.scalars().all()
-        veh_list = []
-        for v in vehicles:
-            stmt_vp = select(VehiclePermission).where(VehiclePermission.vehicle_id == v.id)
-            res_vp = await db.execute(stmt_vp)
-            vps = res_vp.scalars().all()
-            for vp in vps:
-                veh_list.append(f"Vehicle {v.plate_number} permit ({vp.permit_type}): status {vp.status}")
         
-        combined_list = gen_list + veh_list
+        combined_list = gen_list
         if combined_list:
             user_perm_text = "; ".join(combined_list)
     
@@ -376,7 +294,7 @@ async def build_grounding_context(db: AsyncSession, user: Optional[User] = None)
         f"- Accommodation near temple: {accomm_text}\n"
         f"- Devotee's Submitted Permits/Permissions: {user_perm_text}\n"
         f"- Help Desk Phone: +91-1576-230182\n"
-        f"- Annadaan Seva, Bhandara permissions, Medical camp requests, and Vehicle registration entry are supported on the site."
+        f"- Annadaan Seva, Bhandara permissions, and Medical camp requests are supported on the site."
     )
     return context
 
@@ -625,10 +543,6 @@ async def chat_message(
         action_key == "check_permissions" or
         # Reference codes e.g. BAN001, MED001
         re.search(r"\b([A-Z]{3}\d{3})\b", user_msg.upper()) or
-        # Plate numbers e.g. RJ14AB1234
-        re.search(r"\b([A-Z]{2}\d{2}[A-Z]{2}\d{4})\b", user_msg.replace(" ", "").upper()) or
-        # Alternate plate numbers e.g. RJ14A1234
-        any(re.match(r"^[A-Z]{2}\d{2}[A-Z]{1,2}\d{4}$", w) for w in user_msg.upper().split()) or
         # Or explicit checks for status/my permits
         "my permit" in action_key or
         "my permission" in action_key or
