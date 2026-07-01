@@ -27,7 +27,7 @@ import {
 } from "recharts";
 import type {
   AdminUser, AdminDonation, AdminBooking,
-  AdminSupportTicket, AdminVehiclePermit, AdminStats, Announcement,
+  AdminSupportTicket, AdminStats, Announcement,
   AdminGeneralPermission, ParkingLotAdmin, ParkingSnapshot,
   ParkingZoneAdmin, ParkingAnomalyLog,
 } from "../services/adminApi";
@@ -51,7 +51,7 @@ const C = {
 
 /* ─── data types ────────────────────────────────────────── */
 type Section =
-  | "dashboard" | "donations" | "vehicle" | "permissions" | "epass" | "ticketanalytics"
+  | "dashboard" | "donations" | "permissions" | "epass" | "ticketanalytics"
   | "livestatus" | "videoanalysis" | "gallery" | "announcements" | "support" | "reports"
   | "users" | "lostfound" | "parkingcontrol";
 
@@ -62,7 +62,6 @@ const NAV: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: "donations", label: "Donations", icon: <IndianRupee size={16} /> },
   { id: "epass", label: "E-Pass & Bookings", icon: <UserCheck size={16} /> },
   { id: "ticketanalytics", label: "Ticket Analytics", icon: <Ticket size={16} /> },
-  { id: "vehicle", label: "Vehicle Permits", icon: <Car size={16} /> },
   { id: "permissions", label: "Permissions", icon: <ClipboardList size={16} /> },
   { id: "parkingcontrol", label: "Parking Control", icon: <Car size={16} /> },
   { id: "livestatus", label: "Live Status", icon: <Radio size={16} /> },
@@ -212,20 +211,18 @@ function Dashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [donations, setDonations] = useState<AdminDonation[]>([]);
   const [tickets, setTickets] = useState<AdminSupportTicket[]>([]);
-  const [permits, setPermits] = useState<AdminVehiclePermit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [s, d, t, p] = await Promise.all([
+      const [s, d, t] = await Promise.all([
         api.getStats(),
         api.getDonations(undefined, 0, 5),
         api.getSupportTickets("open", 0, 5),
-        api.getVehiclePermits("Pending", undefined, 0, 5),
       ]);
-      setStats(s); setDonations(d); setTickets(t); setPermits(p);
+      setStats(s); setDonations(d); setTickets(t);
     } catch (e: unknown) {
       setError((e as Error).message ?? "Failed to load dashboard data.");
     } finally {
@@ -249,7 +246,6 @@ function Dashboard() {
         <Kpi label="Total Donated" value={`₹${(stats.total_donated_amount / 1000).toFixed(1)}K`} sub={`${stats.total_donations} transactions`} icon={<IndianRupee size={20} />} color={C.green} trend="up" />
         <Kpi label="Total Bookings" value={String(stats.total_bookings)} sub="Darshan e-passes" icon={<UserCheck size={20} />} color={C.orange} />
         <Kpi label="Open Tickets" value={String(stats.open_tickets)} sub="Awaiting response" icon={<MessageCircle size={20} />} color={C.pink} />
-        <Kpi label="Pending Permits" value={String(stats.pending_permits)} sub="Vehicle permits" icon={<Car size={20} />} color="#7C3AED" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
@@ -281,17 +277,6 @@ function Dashboard() {
         <div className="bg-white rounded-2xl p-5" style={{ border: `1px solid ${C.border}` }}>
           <p className="text-sm font-bold mb-4" style={{ color: C.text }}>Pending Actions</p>
           <div className="flex flex-col gap-2">
-            {permits.map(p => (
-              <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-                style={{ backgroundColor: C.bg, border: `1px solid ${C.border}` }}>
-                <Car size={14} color={C.darkBlue} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold" style={{ color: C.text }}>{p.owner_name ?? "Unknown"}</p>
-                  <p className="text-[11px]" style={{ color: C.muted }}>{p.plate_number} · {p.permit_type}</p>
-                </div>
-                <Chip status="Pending" />
-              </div>
-            ))}
             {tickets.map(t => (
               <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
                 style={{ backgroundColor: "#FEF9C3", border: "1px solid #FDE68A" }}>
@@ -303,7 +288,7 @@ function Dashboard() {
                 <Chip status="open" />
               </div>
             ))}
-            {permits.length === 0 && tickets.length === 0 && (
+            {tickets.length === 0 && (
               <p className="text-xs text-center py-8" style={{ color: C.muted }}>All caught up! No pending actions.</p>
             )}
           </div>
@@ -1522,116 +1507,7 @@ function TicketAnalytics() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SECTION: VEHICLE PERMITS (real API)
-═══════════════════════════════════════════════════════════ */
-function VehiclePermits() {
-  const [permits, setPermits] = useState<AdminVehiclePermit[]>([]);
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"" | "Pending" | "Approved" | "Denied">("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [actionId, setActionId] = useState<number | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true); setError("");
-    try { setPermits(await api.getVehiclePermits(filter || undefined, q || undefined)); }
-    catch (e: unknown) { setError((e as Error).message); }
-    finally { setLoading(false); }
-  }, [filter, q]);
-
-  useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [load]);
-
-  async function handleAction(id: number, newStatus: "Approved" | "Denied") {
-    setActionId(id);
-    try {
-      const updated = await api.approveVehiclePermit(id, newStatus);
-      setPermits(prev => prev.map(p => p.id === updated.id ? updated : p));
-    } catch (e: unknown) { alert((e as Error).message); }
-    finally { setActionId(null); }
-  }
-
-  const pending = permits.filter(p => p.status === "Pending").length;
-  const approved = permits.filter(p => p.status === "Approved").length;
-  const denied = permits.filter(p => p.status === "Denied").length;
-
-  return (
-    <div>
-      <Head title="Vehicle Permits"
-        right={<button onClick={load} className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white"
-          style={{ backgroundColor: C.darkBlue }}><RefreshCw size={13} />Refresh</button>}
-      />
-      {error && <ErrorBanner msg={error} onRetry={load} />}
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: "Total", value: permits.length, color: C.darkBlue },
-          { label: "Approved", value: approved, color: C.green },
-          { label: "Pending", value: pending, color: "#D97706" },
-          { label: "Denied", value: denied, color: C.red },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 text-center"
-            style={{ border: `1.5px solid ${C.border}`, borderTop: `3px solid ${s.color}` }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: C.muted }}>{s.label}</p>
-            <p className="text-3xl font-extrabold" style={{ color: s.color }}>{s.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap gap-3 mb-4 items-center">
-        <SearchBar value={q} onChange={setQ} ph="Search by plate number or owner name…" />
-        {(["", "Pending", "Approved", "Denied"] as const).map(f => (
-          <button key={f || "all"} onClick={() => setFilter(f)}
-            className="px-4 py-2 rounded-xl text-xs font-bold transition-all"
-            style={{ backgroundColor: filter === f ? C.darkBlue : C.white, color: filter === f ? "white" : C.muted, border: `1px solid ${filter === f ? C.darkBlue : C.border}` }}>
-            {f || "All"}
-          </button>
-        ))}
-      </div>
-
-      {loading ? <LoadingSpinner /> : (
-        <Table
-          cols={["Owner", "Plate No.", "Type", "Permit", "Valid From", "Valid To", "Status", "Actions"]}
-          rows={permits.map(p => [
-            <div>
-              <p className="font-semibold" style={{ color: C.text }}>{p.owner_name ?? "Guest"}</p>
-              <p className="text-[10px]" style={{ color: C.muted }}>{p.owner_phone ?? "—"}</p>
-            </div>,
-            <span className="font-mono font-semibold" style={{ color: C.darkBlue }}>{p.plate_number}</span>,
-            <span style={{ color: C.muted }}>{p.vehicle_type}</span>,
-            <span style={{ color: C.text }}>{p.permit_type}</span>,
-            <span style={{ color: C.muted }}>{fmtDate(p.valid_from)}</span>,
-            <span style={{ color: C.muted }}>{fmtDate(p.valid_to)}</span>,
-            <Chip status={p.status} />,
-            p.status === "Pending" ? (
-              <div className="flex gap-1">
-                <button onClick={() => handleAction(p.id, "Approved")} disabled={actionId === p.id}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold disabled:opacity-50"
-                  style={{ backgroundColor: `${C.green}15`, color: C.green }}>
-                  {actionId === p.id ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}Approve
-                </button>
-                <button onClick={() => handleAction(p.id, "Denied")} disabled={actionId === p.id}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold disabled:opacity-50"
-                  style={{ backgroundColor: `${C.red}15`, color: C.red }}>
-                  <X size={10} />Deny
-                </button>
-              </div>
-            ) : (
-              <button onClick={() => handleAction(p.id, "Denied")} disabled={actionId === p.id}
-                className="p-1.5 rounded-lg"
-                style={{ backgroundColor: `${C.muted}15`, color: C.muted }}>
-                <RefreshCw size={12} />
-              </button>
-            ),
-          ])}
-        />
-      )}
-      {!loading && permits.length === 0 && (
-        <p className="text-center text-xs py-12" style={{ color: C.muted }}>No vehicle permits found.</p>
-      )}
-    </div>
-  );
-}
 
 /* ═══════════════════════════════════════════════════════════
    SECTION: PERMISSIONS (static categories - Bandhara, Medical, Other)
@@ -3946,7 +3822,6 @@ export function AdminPage() {
     api.getStats().then(s => {
       setBadgeCounts({
         support: s.open_tickets,
-        vehicle: s.pending_permits,
         donations: s.total_donations,
       });
     }).catch(() => { });
@@ -3959,7 +3834,7 @@ export function AdminPage() {
 
   const SECTION_TITLE: Record<Section, string> = {
     dashboard: "Dashboard", users: "User Management", donations: "Donations",
-    vehicle: "Vehicle Permits", permissions: "Permissions", epass: "E-Pass & Bookings",
+    permissions: "Permissions", epass: "E-Pass & Bookings",
     ticketanalytics: "Ticket & E-Pass Analytics",
     parkingcontrol: "Parking Control & CCTV Matrix",
     livestatus: "Live Status", videoanalysis: "AI Video Analysis", gallery: "Gallery", announcements: "Announcements",
@@ -4053,7 +3928,6 @@ export function AdminPage() {
           {section === "dashboard" && <Dashboard />}
           {section === "users" && <UsersSection />}
           {section === "donations" && <Donations />}
-          {section === "vehicle" && <VehiclePermits />}
           {section === "permissions" && <Permissions />}
           {section === "epass" && <EPass />}
           {section === "ticketanalytics" && <TicketAnalytics />}

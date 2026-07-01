@@ -46,7 +46,6 @@ const TREE_DATA: RawNode = {
     {
       id: "permission", label: "Permission",
       children: [
-        { id: "p1", label: "Vehicle Permission",  path: "/services/vehicle-permits" },
         { id: "p2", label: "Bandhara Permission", path: "/services/bandhara-permission" },
         { id: "p3", label: "Medical Camp",        path: "/services/medical-camp" },
         { id: "p4", label: "Other Permissions",   path: "/services/other-permissions" },

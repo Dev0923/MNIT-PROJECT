@@ -15,7 +15,7 @@ from sqlalchemy import select, func, desc, or_
 from database import get_db
 from models.sql_models import (
     User, Booking, Donation, SupportQuery,
-    Vehicle, VehiclePermission, GeneralPermission, Announcement
+    GeneralPermission, Announcement
 )
 from utils.jwt_handler import get_admin_user
 from utils.password_handler import hash_password
@@ -101,25 +101,6 @@ class SupportStatusUpdate(BaseModel):
     admin_reply: Optional[str] = None
 
 
-class AdminVehiclePermitResponse(BaseModel):
-    id: int
-    vehicle_id: int
-    plate_number: str
-    vehicle_type: str
-    vehicle_model: Optional[str]
-    owner_name: Optional[str]
-    owner_phone: Optional[str]
-    permit_type: str
-    status: str
-    valid_from: datetime
-    valid_to: datetime
-    allowed_zones: List[str]
-    created_at: datetime
-
-
-class PermitStatusUpdate(BaseModel):
-    status: str = Field(..., description="'Approved' | 'Denied' | 'Pending'")
-
 class StatusUpdateRequest(BaseModel):
     status: str
 
@@ -130,7 +111,6 @@ class AdminStats(BaseModel):
     total_donated_amount: float
     total_bookings: int
     open_tickets: int
-    pending_permits: int
 
 
 class CreateAdminRequest(BaseModel):
@@ -159,11 +139,6 @@ async def get_admin_stats(
             select(func.count(SupportQuery.id)).where(SupportQuery.status == "open")
         )).scalar_one()
     )
-    pending_permits = (
-        (await db.execute(
-            select(func.count(VehiclePermission.id)).where(VehiclePermission.status == "Pending")
-        )).scalar_one()
-    )
 
     return AdminStats(
         total_users=total_users,
@@ -171,7 +146,6 @@ async def get_admin_stats(
         total_donated_amount=float(total_donated_amount),
         total_bookings=total_bookings,
         open_tickets=open_tickets,
-        pending_permits=pending_permits,
     )
 
 
@@ -449,107 +423,6 @@ async def update_ticket_status(
     await db.commit()
     await db.refresh(ticket)
     return ticket
-
-
-# ═══════════════════════════════════════════════════════
-# VEHICLE PERMITS
-# ═══════════════════════════════════════════════════════
-
-@router.get("/vehicle-permits", response_model=List[AdminVehiclePermitResponse])
-async def list_vehicle_permits(
-    status_filter: Optional[str] = Query(None, alias="status"),
-    q: Optional[str] = Query(None, description="Search by plate number or owner name"),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=200),
-    _: User = Depends(get_admin_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """List all vehicle permit requests with vehicle and owner details."""
-    query = (
-        select(VehiclePermission, Vehicle, User)
-        .join(Vehicle, VehiclePermission.vehicle_id == Vehicle.id)
-        .outerjoin(User, Vehicle.owner_id == User.id)
-        .order_by(desc(VehiclePermission.created_at))
-        .offset(skip)
-        .limit(limit)
-    )
-    if status_filter:
-        query = query.where(VehiclePermission.status == status_filter)
-    if q:
-        query = query.where(
-            or_(
-                Vehicle.plate_number.like(f"%{q.upper()}%"),
-                func.lower(User.name).like(f"%{q.lower()}%"),
-            )
-        )
-
-    result = await db.execute(query)
-    rows = result.all()
-
-    output = []
-    for perm, vehicle, owner in rows:
-        output.append(AdminVehiclePermitResponse(
-            id=perm.id,
-            vehicle_id=vehicle.id,
-            plate_number=vehicle.plate_number,
-            vehicle_type=vehicle.vehicle_type,
-            vehicle_model=vehicle.model,
-            owner_name=owner.name if owner else None,
-            owner_phone=owner.phone if owner else None,
-            permit_type=perm.permit_type,
-            status=perm.status,
-            valid_from=perm.valid_from,
-            valid_to=perm.valid_to,
-            allowed_zones=perm.allowed_zones or [],
-            created_at=perm.created_at,
-        ))
-    return output
-
-
-@router.put("/vehicle-permits/{permit_id}/approve", response_model=AdminVehiclePermitResponse)
-async def approve_vehicle_permit(
-    permit_id: int,
-    body: PermitStatusUpdate,
-    current_admin: User = Depends(get_admin_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Approve or deny a vehicle permit request."""
-    allowed = {"Approved", "Denied", "Pending"}
-    if body.status not in allowed:
-        raise HTTPException(status_code=400, detail=f"Status must be one of: {allowed}")
-
-    result = await db.execute(
-        select(VehiclePermission, Vehicle, User)
-        .join(Vehicle, VehiclePermission.vehicle_id == Vehicle.id)
-        .outerjoin(User, Vehicle.owner_id == User.id)
-        .where(VehiclePermission.id == permit_id)
-    )
-    row = result.first()
-    if not row:
-        raise HTTPException(status_code=404, detail="Permit not found.")
-
-    perm, vehicle, owner = row
-    perm.status = body.status
-    perm.approved_by = current_admin.id
-
-    await db.commit()
-    await db.refresh(perm)
-
-    return AdminVehiclePermitResponse(
-        id=perm.id,
-        vehicle_id=vehicle.id,
-        plate_number=vehicle.plate_number,
-        vehicle_type=vehicle.vehicle_type,
-        vehicle_model=vehicle.model,
-        owner_name=owner.name if owner else None,
-        owner_phone=owner.phone if owner else None,
-        permit_type=perm.permit_type,
-        status=perm.status,
-        valid_from=perm.valid_from,
-        valid_to=perm.valid_to,
-        allowed_zones=perm.allowed_zones or [],
-        created_at=perm.created_at,
-    )
 
 # ═══════════════════════════════════════════════════════
 # GENERAL PERMISSIONS

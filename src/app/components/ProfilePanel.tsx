@@ -24,7 +24,7 @@ const C = {
 
 const API_BASE = "http://localhost:8000";
 
-type Tab = "overview" | "bookings" | "donations" | "accommodation" | "vehicles" | "sos" | "bhandara" | "medical" | "lost_found";
+type Tab = "overview" | "bookings" | "donations" | "accommodation" | "sos" | "bhandara" | "medical" | "lost_found";
 
 interface ProfileData {
   user: {
@@ -43,7 +43,6 @@ interface ProfileData {
     stays: number;
     bhandara: number;
     medical: number;
-    vehicles: number;
     sos: number;
     lostFound: number;
   };
@@ -87,21 +86,6 @@ interface ProfileData {
     total_amount: number;
     status: string;
     created_at: string | null;
-  }>;
-  vehicles: Array<{
-    id: number;
-    plate_number: string;
-    vehicle_type: string;
-    model: string | null;
-    created_at: string | null;
-    permits: Array<{
-      id: number;
-      permit_type: string;
-      status: string;
-      valid_from: string | null;
-      valid_to: string | null;
-      allowed_zones: string[];
-    }>;
   }>;
   sos_alerts: Array<{
     id: number;
@@ -487,12 +471,6 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
       count: profileData?.accommodation_bookings.length,
     },
     {
-      key: "vehicles",
-      label: "Vehicles",
-      icon: <Car size={14} />,
-      count: profileData?.vehicles.length,
-    },
-    {
       key: "sos",
       label: "SOS",
       icon: <ShieldAlert size={14} />,
@@ -644,12 +622,6 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                   val: profileData.statistics?.medical ?? profileData.general_permissions.filter(gp => gp.type.toLowerCase() === "medical").length,
                   color: "#a78bfa",
                   tab: "medical" as Tab,
-                },
-                {
-                  label: "Vehicles",
-                  val: profileData.statistics?.vehicles ?? profileData.vehicles.length,
-                  color: C.orange,
-                  tab: "vehicles" as Tab,
                 },
                 {
                   label: "SOS",
@@ -911,8 +883,6 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                             "Accommodation": "#f472b6",
                             "Bhandara": "#fb923c",
                             "Permission": "#a78bfa",
-                            "Vehicle Registration": C.orange,
-                            "Vehicle Permit": C.orange,
                             "SOS": "#f87171",
                             "Lost Item": "#facc15",
                             "Lost Person": "#facc15",
@@ -1164,95 +1134,6 @@ export function ProfilePanel({ isOpen, onClose }: ProfilePanelProps) {
                         >
                           {ab.booking_id}
                         </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {/* ── VEHICLES TAB ── */}
-              {activeTab === "vehicles" && (
-                <div className="flex flex-col gap-2">
-                  {profileData.vehicles.length === 0 ? (
-                    <EmptyState
-                      icon={<Car size={28} />}
-                      text="No registered vehicles yet"
-                    />
-                  ) : (
-                    profileData.vehicles.map((v) => (
-                      <div
-                        key={v.id}
-                        className="rounded-xl border overflow-hidden"
-                        style={{ borderColor: C.border }}
-                      >
-                        {/* Vehicle header */}
-                        <div
-                          className="flex items-center gap-3 p-3"
-                          style={{ backgroundColor: C.bg }}
-                        >
-                          <div
-                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: `${C.darkBlue}15` }}
-                          >
-                            <Car size={18} color={C.darkBlue} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="text-sm font-bold"
-                              style={{ color: C.darkBlue }}
-                            >
-                              {v.plate_number}
-                            </p>
-                            <p
-                              className="text-[10px]"
-                              style={{ color: C.muted }}
-                            >
-                              {v.vehicle_type}
-                              {v.model ? ` · ${v.model}` : ""}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Permits */}
-                        {v.permits.length === 0 ? (
-                          <div className="px-3 py-2">
-                            <p className="text-[10px]" style={{ color: C.muted }}>
-                              No parking permits issued
-                            </p>
-                          </div>
-                        ) : (
-                          v.permits.map((p) => (
-                            <div
-                              key={p.id}
-                              className="px-3 py-2 border-t"
-                              style={{ borderColor: C.border }}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <p
-                                  className="text-xs font-semibold"
-                                  style={{ color: C.darkText }}
-                                >
-                                  {p.permit_type} Permit
-                                </p>
-                                <StatusBadge status={p.status} />
-                              </div>
-                              <p
-                                className="text-[10px]"
-                                style={{ color: C.muted }}
-                              >
-                                Valid: {fmtDate(p.valid_from)} → {fmtDate(p.valid_to)}
-                              </p>
-                              {p.allowed_zones?.length > 0 && (
-                                <p
-                                  className="text-[9px] mt-1"
-                                  style={{ color: C.muted }}
-                                >
-                                  Zones: {p.allowed_zones.join(", ")}
-                                </p>
-                              )}
-                            </div>
-                          ))
-                        )}
                       </div>
                     ))
                   )}

@@ -181,7 +181,6 @@ export function Footer() {
               <ul className="flex flex-col gap-2.5">
                 {[
                   { label: "E-Pass Registration", path: "/services/epass" },
-                  { label: "Vehicle Permits", path: "/services/vehicle-permits" },
                   { label: "Puja Booking", path: "/services/puja" },
                   { label: "Darshan Pass", path: "/darshan-booking" },
                   { label: "Officer Login", path: "/login" },

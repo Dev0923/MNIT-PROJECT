@@ -35,17 +35,6 @@ const SERVICES: Record<string, Service> = {
     price: "₹ 0",
     timing: "Valid for chosen slot",
   },
-  "vehicle-permits": {
-    title: "Vehicle Permits",
-    tagline: "Mela zone entry permits",
-    img: "https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80",
-    about:
-      "Apply for official vehicle permits to enter restricted Mela zones. Permits are issued for cars, buses and emergency vehicles after credential verification.",
-    highlights: ["Cars, buses, emergency vehicles", "RC & ID verification", "Permit valid for Mela window"],
-    priceLabel: "Per vehicle",
-    price: "₹ 200",
-    timing: "Mela season",
-  },
   "puja-booking": {
     title: "Puja Booking",
     tagline: "Personal puja in your name",
@@ -178,7 +167,6 @@ export function ServicePage() {
                 style={{ backgroundColor: C.orange, boxShadow: `0 4px 14px rgba(247,148,29,0.40)` }}
                 onClick={() => { 
                   if (slug === "darshan-pass") navigate("/darshan-booking"); 
-                  else if (slug === "vehicle-permits") navigate("/services/vehicle-registration");
                   else if (slug === "officer-login") navigate("/login");
                 }}
               >
