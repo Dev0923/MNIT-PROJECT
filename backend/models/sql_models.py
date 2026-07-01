@@ -35,7 +35,6 @@ class User(Base):
     # Relationships
     bookings = relationship("Booking", back_populates="user", cascade="all, delete-orphan")
     donations = relationship("Donation", back_populates="user", cascade="all, delete-orphan")
-    vehicles = relationship("Vehicle", back_populates="owner", cascade="all, delete-orphan")
     accommodation_bookings = relationship("AccommodationBooking", back_populates="user", cascade="all, delete-orphan")
     sos_alerts = relationship("SOSAlert", back_populates="user", cascade="all, delete-orphan")
 
@@ -100,37 +99,6 @@ class SupportQuery(Base):
     admin_reply = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-
-class Vehicle(Base):
-    __tablename__ = "khatu_vehicles"
-
-    id = Column(Integer, primary_key=True, index=True)
-    owner_id = Column(Integer, ForeignKey("khatu_users.id", ondelete="CASCADE"), nullable=True)
-    plate_number = Column(String(50), unique=True, index=True, nullable=False)
-    vehicle_type = Column(String(50), nullable=False)  # "Car", "Two-wheeler", etc.
-    model = Column(String(100), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    owner = relationship("User", back_populates="vehicles")
-    permissions = relationship("VehiclePermission", back_populates="vehicle", cascade="all, delete-orphan")
-
-
-class VehiclePermission(Base):
-    __tablename__ = "khatu_vehicle_permissions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    vehicle_id = Column(Integer, ForeignKey("khatu_vehicles.id", ondelete="CASCADE"), nullable=False)
-    permit_type = Column(String(50), nullable=False)  # "VIP", "Staff", "Visitor"
-    status = Column(String(50), default="Pending")  # "Pending", "Approved", "Denied"
-    valid_from = Column(DateTime(timezone=True), nullable=False)
-    valid_to = Column(DateTime(timezone=True), nullable=False)
-    allowed_zones = Column(JSONB, nullable=False)  # JSON Array of strings e.g. ["Zone A", "Zone B"]
-    approved_by = Column(Integer, ForeignKey("khatu_users.id", ondelete="SET NULL"), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
-    # Relationships
-    vehicle = relationship("Vehicle", back_populates="permissions")
 
 
 class DarshanSlot(Base):

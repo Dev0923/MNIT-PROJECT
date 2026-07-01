@@ -65,29 +65,12 @@ export interface AdminSupportTicket {
   created_at: string;
 }
 
-export interface AdminVehiclePermit {
-  id: number;
-  vehicle_id: number;
-  plate_number: string;
-  vehicle_type: string;
-  vehicle_model: string | null;
-  owner_name: string | null;
-  owner_phone: string | null;
-  permit_type: string;
-  status: string;
-  valid_from: string;
-  valid_to: string;
-  allowed_zones: string[];
-  created_at: string;
-}
-
 export interface AdminStats {
   total_users: number;
   total_donations: number;
   total_donated_amount: number;
   total_bookings: number;
   open_tickets: number;
-  pending_permits: number;
 }
 
 export interface LoginResponse {
@@ -260,30 +243,6 @@ export async function updateTicketStatus(
   return apiFetch<AdminSupportTicket>(`/api/admin/support/${id}/status`, {
     method: "PUT",
     body: JSON.stringify({ status, admin_reply: adminReply }),
-  });
-}
-
-// ── Vehicle Permits ───────────────────────────────────────
-
-export async function getVehiclePermits(
-  statusFilter?: string,
-  q?: string,
-  skip = 0,
-  limit = 50
-): Promise<AdminVehiclePermit[]> {
-  const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
-  if (statusFilter) params.set("status", statusFilter);
-  if (q) params.set("q", q);
-  return apiFetch<AdminVehiclePermit[]>(`/api/admin/vehicle-permits?${params}`);
-}
-
-export async function approveVehiclePermit(
-  id: number,
-  permitStatus: "Approved" | "Denied" | "Pending"
-): Promise<AdminVehiclePermit> {
-  return apiFetch<AdminVehiclePermit>(`/api/admin/vehicle-permits/${id}/approve`, {
-    method: "PUT",
-    body: JSON.stringify({ status: permitStatus }),
   });
 }
 

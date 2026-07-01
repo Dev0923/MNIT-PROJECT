@@ -7,7 +7,7 @@ import {
   Sparkles, ChevronRight,
 } from "lucide-react";
 import logoImg from "../../imports/image-21.png";
-import templeImg from "../../imports/khatu-shyam-ji.jpg";
+import templeImg from "../../imports/khatu-shyam-ji.jpeg";
 
 const C = {
   orange:   "#F7941D",

@@ -12,7 +12,6 @@ from routes.support import router as support_router
 from routes.crowd import router as crowd_router
 from routes.bandhara import router as bandhara_router
 from routes.alerts import router as alerts_router
-from routes.vehicles import router as vehicles_router
 from routes.auth import router as auth_router
 from routes.admin import router as admin_router
 from routes.lost_found import router as lost_found_router
@@ -75,7 +74,6 @@ app.include_router(support_router)
 app.include_router(crowd_router)
 app.include_router(bandhara_router)
 app.include_router(alerts_router)
-app.include_router(vehicles_router)
 app.include_router(admin_router)
 app.include_router(lost_found_router)
 app.include_router(general_permissions_router)

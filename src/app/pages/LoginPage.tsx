@@ -5,7 +5,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router";
-import templeImg from "../../imports/khatu-shyam-ji.jpg";
+import templeImg from "../../imports/khatu-shyam-ji.jpeg";
 
 const C = {
   orange: "#F7941D",
@@ -39,8 +39,22 @@ export function LoginPage() {
 
         {/* LEFT: image panel */}
         <div className="relative hidden md:block md:w-1/2 h-full flex-shrink-0 overflow-hidden">
-          <img src={templeImg} alt="Khatu Shyam Ji" className="absolute inset-0 w-full h-full object-cover object-top" />
-          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(8,4,20,0.88) 0%, rgba(8,4,20,0.25) 40%, transparent 65%)" }} />
+          {/* Blurred bg fills the side gaps */}
+          <img
+            src={templeImg}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: "center center", filter: "blur(18px) brightness(0.6)", transform: "scale(1.1)" }}
+          />
+          {/* Sharp zoomed image on top */}
+          <img
+            src={templeImg}
+            alt="Khatu Shyam Ji"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: "center 40%", transform: "scale(1.35)", transformOrigin: "center 30%" }}
+          />
+          <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(8,4,20,0.88) 0%, rgba(8,4,20,0.10) 35%, transparent 60%)" }} />
           <div className="absolute bottom-8 left-8">
             <h2 style={{ fontFamily: "'Georgia', serif", fontSize: "1.5rem", fontWeight: 700, color: "#fff", textShadow: "0 2px 10px rgba(0,0,0,0.8)", marginBottom: "4px" }}>
               खाटू श्याम जी
